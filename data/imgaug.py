@@ -10,10 +10,13 @@ def random_scale(img, bboxes, min_size):
         bboxes *= scale
 
     h, w = img.shape[0:2]
-    random_scale = np.array([1.0, 1.5, 2.0])
+    #random_scale = np.array([1.0, 1.5, 2.0])
+    #random_scale = np.array([0.5, 1.0, 1.5, 2.0])
     random_scale = [1.0, 1.5, 2.0]
     # scale = np.random.choice(random_scale)
     scale = random.sample(random_scale, 1)[0]
+
+
     if min(h, w) * scale <= min_size:
         scale = (min_size + 10) * 1.0 / min(h, w)
     bboxes *= scale
@@ -45,14 +48,15 @@ def random_crop(imgs, img_size, character_bboxes):
     word_bboxes = []
     if len(character_bboxes) > 0:
         for bboxes in character_bboxes:
-            word_bboxes.append(
+             word_bboxes.append(
                 [[bboxes[:, :, 0].min(), bboxes[:, :, 1].min()], [bboxes[:, :, 0].max(), bboxes[:, :, 1].max()]])
     word_bboxes = np.array(word_bboxes, np.int32)
 
     if random.random() > 0.6 and len(word_bboxes) > 0:
         sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
+
         left = max(sample_bboxes[1, 0] - img_size[0], 0)
-        top = max(sample_bboxes[1, 1] - img_size[0], 0)
+        top = max(sample_bboxes[1, 1] - img_size[0],0)
 
         if min(sample_bboxes[0, 1], h - th) < top or min(sample_bboxes[0, 0], w - tw) < left:
             i = random.randint(0, h - th)
@@ -64,8 +68,12 @@ def random_crop(imgs, img_size, character_bboxes):
         crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] - i else th
         crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] - j else tw
     else:
-        i, j = 0, 0
-        crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
+        ### train for IC15 dataset####
+        i = random.randint(0, h - th)
+        j = random.randint(0, w - tw)
+
+        # i, j = 0, 0
+        # crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
 
     for idx in range(len(imgs)):
         # crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] else th
@@ -80,6 +88,101 @@ def random_crop(imgs, img_size, character_bboxes):
             imgs[idx] = padding_image(imgs[idx], tw)
 
     return imgs
+
+
+def random_crop_v2(imgs, img_size, character_bboxes):
+    h, w = imgs[0].shape[0:2]
+    th, tw = img_size
+    crop_h, crop_w = img_size
+    if w == tw and h == th:
+        return imgs
+
+    word_bboxes = []
+    if len(character_bboxes) > 0:
+        for bboxes in character_bboxes:
+             word_bboxes.append(
+                [[bboxes[:, :, 0].min(), bboxes[:, :, 1].min()], [bboxes[:, :, 0].max(), bboxes[:, :, 1].max()]])
+    word_bboxes = np.array(word_bboxes, np.int32)
+
+    if random.random() > 0.6 and len(word_bboxes) > 0:
+
+        sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
+        left = max(sample_bboxes[1, 0] - img_size[0], 0)
+        top = max(sample_bboxes[1, 1] - img_size[0],0)
+
+        sp_x, sp_y, ep_x, ep_y = sample_bboxes[0][0], sample_bboxes[0][1], sample_bboxes[1][0], sample_bboxes[1][1]
+
+
+        if min(sample_bboxes[0, 1], h - th) < top or min(sample_bboxes[0, 0], w - tw) < left:
+            #i = random.randint(0, h - th)
+            #j = random.randint(0, w - tw)
+            try:
+                i = random.randint(0, sp_y)
+                j = random.randint(0, sp_x)
+
+            except:
+                import ipdb;ipdb.set_trace()
+
+
+        else:
+            i = random.randint(top, min(sample_bboxes[0, 1], h - th))
+            j = random.randint(left, min(sample_bboxes[0, 0], w - tw))
+
+            #print('else(sample_bboxes')
+
+        crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] - i else th
+        crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] - j else tw
+    else:
+        ### train for IC15 dataset####
+        #i = random.randint(0, h - th)
+        #j = random.randint(0, w - tw)
+
+        i, j = 0, 0
+        crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
+        #print('randome_bboxes')
+
+
+
+        # i, j = 0, 0
+        # crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
+
+    for idx in range(len(imgs)):
+        # crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] else th
+        # crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] else tw
+
+        if len(imgs[idx].shape) == 3:
+            imgs[idx] = imgs[idx][i:i + crop_h, j:j + crop_w, :]
+        else:
+            imgs[idx] = imgs[idx][i:i + crop_h, j:j + crop_w]
+
+        if crop_w > tw or crop_h > th:
+            imgs[idx] = padding_image(imgs[idx], tw)
+
+    return imgs
+
+
+
+def random_horizontal_flip(imgs):
+    if random.random() < 0.5:
+        for i in range(len(imgs)):
+            imgs[i] = np.flip(imgs[i], axis=1).copy()
+    return imgs
+
+
+def random_rotate(imgs):
+    max_angle = 10
+    angle = random.random() * 2 * max_angle - max_angle
+    for i in range(len(imgs)):
+        img = imgs[i]
+        w, h = img.shape[:2]
+        rotation_matrix = cv2.getRotationMatrix2D((h / 2, w / 2), angle, 1)
+        img_rotation = cv2.warpAffine(img, rotation_matrix, (h, w))
+        imgs[i] = img_rotation
+    return imgs
+
+
+
+
 
 # random crop cite from PaddleOCR
 def is_poly_in_rect(poly, x, y, w, h):

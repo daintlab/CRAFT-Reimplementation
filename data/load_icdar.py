@@ -1,7 +1,53 @@
+
+import re
+import itertools
 import cv2
 import os
 import numpy as np
 from data.pointClockOrder import mep
+
+
+
+def load_synthtext_gt(data_folder, data_li):
+
+
+    dataFolder = data_folder
+
+
+    wordbox, image, imgtxt = data_li
+
+    total_img_path = []
+    total_imgs_bboxes = []
+
+    for index in range(len(wordbox)):
+        img_path = os.path.join(dataFolder, image[index][0])
+        total_img_path.append(img_path)
+        try:
+            _wordbox = wordbox[index].transpose((2, 1, 0))
+        except:
+            _wordbox = np.expand_dims(wordbox[index], axis=0)
+            _wordbox = _wordbox.transpose((0, 2, 1))
+
+        words = [re.split(' \n|\n |\n| ', t.strip()) for t in imgtxt[index]]
+        words = list(itertools.chain(*words))
+        words = [t for t in words if len(t) > 0]
+
+        if len(words) != len(_wordbox):
+            import ipdb;ipdb.set_trace()
+
+        single_img_bboxes = []
+        for j in range(len(words)):
+            boxInfos = {"points": None, "text": None, "ignore": None}
+            boxInfos["points"] = _wordbox[j]
+            boxInfos["text"] = words[j]
+            boxInfos["ignore"] = False
+            single_img_bboxes.append(boxInfos)
+
+        total_imgs_bboxes.append(single_img_bboxes)
+
+
+    return total_imgs_bboxes, total_img_path
+
 
 def load_icdar2015_gt(dataFolder, isTraing=False):
     if isTraing:
@@ -9,7 +55,7 @@ def load_icdar2015_gt(dataFolder, isTraing=False):
         gt_folderName = "ch4_training_localization_transcription_gt"
     else:
         img_folderName = "ch4_test_images"
-        gt_folderName = "ch4_test_images_gt"
+        gt_folderName = "ch4_test_localization_transcription_gt"
 
 
     gt_folder_path = os.listdir(os.path.join(dataFolder, gt_folderName))

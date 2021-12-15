@@ -28,7 +28,7 @@ class double_conv(nn.Module):
 
 
 class CRAFT(nn.Module):
-    def __init__(self, pretrained=False, freeze=False):
+    def __init__(self, pretrained=True, freeze=False):
         super(CRAFT, self).__init__()
 
         """ Base network """

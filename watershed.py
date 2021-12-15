@@ -15,10 +15,10 @@ import numpy as np
 from data import imgproc
 import Polygon as plg
 
-
 from craft import CRAFT
-
 from collections import OrderedDict
+
+
 def copyStateDict(state_dict):
     if list(state_dict.keys())[0].startswith("module"):
         start_idx = 1
@@ -47,88 +47,70 @@ def crop_image_by_bbox(image, box):
     warped = cv2.warpPerspective(image, M, (width, height))
     return warped
 
-def watershed(image, viz=False):
-    # viz = True
-    boxes = []
-    if len(image.shape) == 3:
-        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+
+def watershed(image,region_score, viz):
+    # new backtime code
+
+    visual = viz
+    # region_score = np.uint8(np.clip(region_score, 0, 1) * 255)
+
+    ori_region_score = region_score.copy()
+
+    if len(region_score.shape) == 3:
+        gray = cv2.cvtColor(region_score, cv2.COLOR_BGR2GRAY)
     else:
-        gray = image
-    if viz:
-        cv2.imshow("gray", gray)
-        cv2.waitKey()
+        gray = region_score
+    if visual:
+        cv2.imwrite('exp/{}'.format('gray_w4.jpg'), gray)
+
+
     ret, binary = cv2.threshold(gray, 0.2 * np.max(gray), 255, cv2.THRESH_BINARY)
-    if viz:
-        cv2.imshow("binary", binary)
-        cv2.waitKey()
-    # 形态学操作，进一步消除图像中噪点
-    kernel = np.ones((3, 3), np.uint8)
-    # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+
+    if visual:
+        cv2.imwrite('exp/{}'.format('binary_w4.jpg'), binary)
+
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     mb = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=2)  # iterations连续两次开操作
     sure_bg = cv2.dilate(mb, kernel, iterations=3)  # 3次膨胀,可以获取到大部分都是背景的区域
     sure_bg = mb
+    if visual:
+        cv2.imwrite('exp/{}'.format('sure_bg_w4.jpg'), sure_bg)
+    ret, sure_fg = cv2.threshold(gray, 0.6 * np.max(gray), 255, cv2.THRESH_BINARY)
+    #sure_fg = cv2.dilate(sure_fg, kernel, iterations=1)
+    if visual:
+        cv2.imwrite('exp/{}'.format('sure_fg_w4.jpg'), sure_fg)
 
-    sure_bg = binary
-    if viz:
-        cv2.imshow("sure_bg", mb)
-        cv2.waitKey()
-    # 距离变换
-    # dist = cv2.distanceTransform(mb, cv2.DIST_L2, 5)
-    # if viz:
-    #     cv2.imshow("dist", dist)
-    #     cv2.waitKey()
-    ret, sure_fg = cv2.threshold(gray, 0.7 * gray.max(), 255, cv2.THRESH_BINARY)
-    surface_fg = np.uint8(sure_fg)  # 保持色彩空间一致才能进行运算，现在是背景空间为整型空间，前景为浮点型空间，所以进行转换
-    if viz:
-        cv2.imshow("surface_fg", surface_fg)
-        cv2.waitKey()
-    unknown = cv2.subtract(sure_bg, surface_fg)
+    surface_fg = np.uint8(sure_fg)
+    surface_bg = np.uint8(sure_bg)
+    unknown = cv2.subtract(surface_bg, surface_fg)
+    if visual:
+        cv2.imwrite('exp/{}'.format('unknown_w4.jpg'), unknown)
+
     # 获取maskers,在markers中含有种子区域
-    ret, markers = cv2.connectedComponents(surface_fg)
-
+    #ret, markers = cv2.connectedComponents(surface_fg)
     nLabels, labels, stats, centroids = cv2.connectedComponentsWithStats(surface_fg,
                                                                          connectivity=4)
-    print("nlabels: ", nLabels)
     # 分水岭变换
-    markers = labels.copy() + 1
-    # markers = markers+1
+    markers = labels + 1
     markers[unknown == 255] = 0
+    markers = cv2.watershed(image, markers=markers)
+    image[markers == -1] = [0, 0, 255]
 
-    if viz:
-        color_markers = np.uint8(markers)
-        color_markers = color_markers / (color_markers.max() / 255)
-        color_markers = np.uint8(color_markers)
-        color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
-        cv2.imshow("color_markers", color_markers)
-        cv2.waitKey()
+    color_markers = np.uint8(markers + 1)
+    color_markers = color_markers / (color_markers.max() / 255)
+    color_markers = np.uint8(color_markers)
+    color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
 
-    if viz:
-        color_markers = np.uint8(markers + 1)
-        color_markers = color_markers / (color_markers.max() / 255)
-        color_markers = np.uint8(color_markers)
-        color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
-        cv2.imshow("color_markers1", color_markers)
-        cv2.waitKey()
+    if visual:
+        cv2.imwrite('exp/{}'.format('water_w4.jpg'), image)
+        cv2.imwrite('exp/{}'.format('markers_w4.jpg'), color_markers)
 
-    for i in range(0, np.max(markers)):
+
+    boxes = []
+    for i in range(2, np.max(markers) + 1):
         np_contours = np.roll(np.array(np.where(markers == i)), 1, axis=0).transpose().reshape(-1, 2)
-        # segmap = np.zeros(gray.shape, dtype=np.uint8)
-        # segmap[markers == i] = 255
-        # size = np_contours.shape[0]
-        # x, y, w, h = cv2.boundingRect(np_contours)
-        # if w == 0 or h == 0:
-        #     continue
-        #
-        # niter = int(math.sqrt(size * min(w, h) / (w * h)) * 2)
-        # sx, ex, sy, ey = x - niter, x + w + niter + 1, y - niter, y + h + niter + 1
-        # # boundary check
-        # if sx < 0: sx = 0
-        # if sy < 0: sy = 0
-        # if ex >= gray.shape[1]: ex = gray.shape[1]
-        # if ey >= gray.shape[0]: ey = gray.shape[0]
-        # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1 + niter, 1 + niter))
-        # segmap[sy:ey, sx:ex] = cv2.dilate(segmap[sy:ey, sx:ex], kernel)
-        # np_contours = np.roll(np.array(np.where(segmap != 0)), 1, axis=0).transpose().reshape(-1, 2)
         rectangle = cv2.minAreaRect(np_contours)
         box = cv2.boxPoints(rectangle)
 
@@ -138,78 +120,94 @@ def watershed(image, viz=False):
         area = poly.area()
         if area < 10:
             continue
-        # box = np.array(box)
+        box = np.array(box)
         boxes.append(box)
-    return np.array(boxes)
+        # if visual:
+        #     cv2.polylines(image, [np.array(box, dtype=np.int) * 2], True, (0, 255, 255), 1)
+        #     cv2.imwrite('exp/{}'.format('water1.jpg'), image)
 
-def watershed1(image, viz=False):
-    score_text_vis = image.copy()
+    #boxes = np.array(boxes) * 2
+    #boxes = sorted(boxes, key=lambda item: (item[0][0], item[0][1]))
 
-    boxes = []
-    if len(image.shape) == 3:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return np.array(boxes), color_markers
+
+
+
+def watershed4(region_score, viz ):
+    # new backtime code
+
+    visual = viz
+    # region_score = np.uint8(np.clip(region_score, 0, 1) * 255)
+
+    ori_region_score = region_score.copy()
+
+    if len(region_score.shape) == 3:
+        gray = cv2.cvtColor(region_score, cv2.COLOR_BGR2GRAY)
     else:
-        gray = image
+        gray = region_score
+    if visual:
+        cv2.imwrite('exp/{}'.format('gray.jpg'), gray)
+
     ret, binary = cv2.threshold(gray, 0.2 * np.max(gray), 255, cv2.THRESH_BINARY)
-    # 形态学操作，进一步消除图像中噪点
-    # kernel = np.ones((3, 3), np.uint8)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     mb = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=2)  # iterations连续两次开操作
     sure_bg = cv2.dilate(mb, kernel, iterations=3)  # 3次膨胀,可以获取到大部分都是背景的区域
-    sure_fg = cv2.erode(mb, kernel, iterations=2)
+    # sure_bg = mb
+    if visual:
+        cv2.imwrite('exp/{}'.format('sure_bg.jpg'), sure_bg)
+    ret, sure_fg = cv2.threshold(gray, 0.7 * np.max(gray), 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    #sure_fg = cv2.dilate(sure_fg, kernel, iterations=1)
+    if visual:
+        cv2.imwrite('exp/{}'.format('sure_fg.jpg'), sure_fg)
 
-    unknown = cv2.subtract(sure_bg, sure_fg)
+    surface_fg = np.uint8(sure_fg)
+    surface_bg = np.uint8(sure_bg)
+    unknown = cv2.subtract(surface_bg, surface_fg)
+    if visual:
 
+        cv2.imwrite('exp/{}'.format('unknown.jpg'), unknown)
 
-    # 距离变换
-    dist = cv2.distanceTransform(mb, cv2.DIST_L2, 5)
-
-    cv2.normalize(dist, dist, 0, 1.0, cv2.NORM_MINMAX)
-
-    ret, sure_fg = cv2.threshold(dist, 0.7 * np.max(dist), 255, cv2.THRESH_BINARY)
-    surface_fg = np.uint8(sure_fg)  # 保持色彩空间一致才能进行运算，现在是背景空间为整型空间，前景为浮点型空间，所以进行转换
-
-    unknown = cv2.subtract(sure_bg, surface_fg)
     # 获取maskers,在markers中含有种子区域
     ret, markers = cv2.connectedComponents(surface_fg)
 
     # 分水岭变换
     markers = markers + 1
     markers[unknown == 255] = 0
+    markers = cv2.watershed(ori_region_score, markers=markers)
+    ori_region_score[markers == -1] = [0, 0, 255]
 
-    if viz:
-        color_markers = np.uint8(markers)
-        color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
-        cv2.imshow("color_markers", color_markers)
-        cv2.waitKey()
+    color_markers = np.uint8(markers + 1)
+    color_markers = color_markers / (color_markers.max() / 255)
+    color_markers = np.uint8(color_markers)
+    color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
 
-    markers = cv2.watershed(image, markers=markers)
-    image[markers == -1] = [0, 0, 255]
+    if visual:
+        cv2.imwrite('exp/{}'.format('water.jpg'), ori_region_score)
+        cv2.imwrite('exp/{}'.format('markers.jpg'), color_markers)
 
-    print(np.max(markers))
-    for i in range(0, np.max(markers) + 1):
+
+    boxes = []
+    for i in range(2, np.max(markers) + 1):
         np_contours = np.roll(np.array(np.where(markers == i)), 1, axis=0).transpose().reshape(-1, 2)
-        # print(np_contours.shape)
         rectangle = cv2.minAreaRect(np_contours)
         box = cv2.boxPoints(rectangle)
-        w, h = np.linalg.norm(box[0] - box[1]), np.linalg.norm(box[1] - box[2])
-        box_ratio = max(w, h) / (min(w, h) + 1e-5)
-        if abs(1 - box_ratio) <= 0.1:
-            l, r = min(np_contours[:, 0]), max(np_contours[:, 0])
-            t, b = min(np_contours[:, 1]), max(np_contours[:, 1])
-            box = np.array([[l, t], [r, t], [r, b], [l, b]], dtype=np.float32)
 
-        # make clock-wise order
         startidx = box.sum(axis=1).argmin()
         box = np.roll(box, 4 - startidx, 0)
+        poly = plg.Polygon(box)
+        area = poly.area()
+        if area < 10:
+            continue
         box = np.array(box)
         boxes.append(box)
-        score_text_vis_ = score_text_vis.copy()
-        cv2.polylines(score_text_vis_, [np.array(box,dtype=np.int)], True, (0, 255, 255), 1)
-        cv2.namedWindow("water", cv2.WINDOW_NORMAL)
-        cv2.imshow("water", score_text_vis_)
-        cv2.waitKey(0)
-    return np.array(boxes)
+        # if visual:
+        #     cv2.polylines(image, [np.array(box, dtype=np.int) * 2], True, (0, 255, 255), 1)
+        #     cv2.imwrite('exp/{}'.format('water1.jpg'), image)
+
+    #boxes = np.array(boxes) * 2
+    #boxes = sorted(boxes, key=lambda item: (item[0][0], item[0][1]))
+
+    return np.array(boxes), color_markers
 
 
 def str2bool(v):

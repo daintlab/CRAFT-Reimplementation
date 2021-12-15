@@ -11,6 +11,8 @@ from data import imgproc
 
 def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, canvas_size=1280, mag_ratio=1.5):
     # resize
+
+
     img_resized, target_ratio, size_heatmap = imgproc.resize_aspect_ratio(image, canvas_size, interpolation=cv2.INTER_LINEAR, mag_ratio=mag_ratio)
     ratio_h = ratio_w = 1 / target_ratio
 
@@ -39,8 +41,11 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, c
         if polys[k] is None: polys[k] = boxes[k]
 
     # render results (optional)
-    render_img = score_text.copy()
-    render_img = np.hstack((render_img, score_link))
-    ret_score_text = imgproc.cvt2HeatmapImg(render_img)
+    score_text = score_text.copy()
+    render_score_text = imgproc.cvt2HeatmapImg(score_text)
+    render_score_link = imgproc.cvt2HeatmapImg(score_link)
+    render_img = [render_score_text, render_score_link]
+    #ret_score_text = imgproc.cvt2HeatmapImg(render_img)
 
-    return boxes, polys, ret_score_text
+
+    return boxes, polys, render_img

@@ -25,7 +25,7 @@ def sidePoint(Apoint, Bpoint, h, w, placehold):
     angle = abs(math.atan(pointAngle(Apoint, Bpoint)))
     distance = pointDistance(Apoint, Bpoint)
 
-    halfIncreaseDistance = 0.5 * distance
+    halfIncreaseDistance = 0.75 * distance
 
     XaxisIncreaseDistance = abs(math.cos(angle) * halfIncreaseDistance)
     YaxisIncreaseDistance = abs(math.sin(angle) * halfIncreaseDistance)
@@ -47,6 +47,8 @@ def sidePoint(Apoint, Bpoint, h, w, placehold):
 
 # 将box扩大1.5倍
 def enlargebox(box, h, w):
+
+
     # box = [Apoint, Bpoint, Cpoint, Dpoint]
     Apoint, Bpoint, Cpoint, Dpoint = box
     K1, B1 = lineBiasAndK(box[0], box[2])

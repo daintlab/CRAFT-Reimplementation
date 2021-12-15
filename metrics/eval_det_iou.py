@@ -86,15 +86,21 @@ class DetectionIoUEvaluator(object):
         evaluationLog = ""
 
         # print(len(gt))
+
         for n in range(len(gt)):
             points = gt[n]['points']
             # transcription = gt[n]['text']
             dontCare = gt[n]['ignore']
             #             points = Polygon(points)
             #             points = points.buffer(0)
-            if not Polygon(points).is_valid or not Polygon(points).is_simple:
-                continue
+            try:
+                if not Polygon(points).is_valid or not Polygon(points).is_simple:
+                    continue
+            except:
+                import ipdb;
+                ipdb.set_trace()
 
+            #import ipdb;ipdb.set_trace()
             gtPol = points
             gtPols.append(gtPol)
             gtPolPoints.append(points)

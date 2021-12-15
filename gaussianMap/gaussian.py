@@ -10,9 +10,9 @@ from data.boxEnlarge import enlargebox
 
 class GaussianTransformer(object):
 
-    def __init__(self, imgSize=200, enlargeSize=1.50):
+    def __init__(self, imgSize=200, enlargeSize=1.50, sigma=40):
         self.imgSize = imgSize
-        isotropicGrayscaleImage, isotropicGrayscaleImageColor = self.gen_gaussian_heatmap()
+        isotropicGrayscaleImage, isotropicGrayscaleImageColor = self.gen_gaussian_heatmap(sigma)
         self.standardGaussianHeat = isotropicGrayscaleImage
         self.enlargeSize = enlargeSize
         # color_gaussian = cv2.applyColorMap(self.standardGaussianHeat, cv2.COLORMAP_JET)
@@ -20,26 +20,26 @@ class GaussianTransformer(object):
         # cv2.waitKey(0)
         # self._test()
 
-    def gen_gaussian_heatmap(self):
+    def gen_gaussian_heatmap(self, sigma):
         circle_mask = self.gen_circle_mask()
         imgSize = self.imgSize
         isotropicGrayscaleImage = np.zeros((imgSize, imgSize), np.float32)
 
-        # scaledGaussian = lambda x: exp(-((x ** 2)/(2 * (40 **2)))) * (1 / sqrt(2 * pi * (40 **2)))
-        # scaledGaussian = lambda x: exp(-((x ** 2) / (2 * (40 ** 2))))
 
-        # 生成高斯图
+        sigma = sigma
         for i in range(imgSize):
             for j in range(imgSize):
-                isotropicGrayscaleImage[i, j] = 1 / 2 / np.pi / (40 ** 2) * np.exp(
-                    -1 / 2 * ((i - imgSize / 2) ** 2 / (40 ** 2) + (j - imgSize / 2) ** 2 / (40 ** 2)))
+                isotropicGrayscaleImage[i, j] = 1 / 2 / np.pi / (sigma ** 2) * np.exp(
+                    -1 / 2 * ((i - imgSize / 2) ** 2 / (sigma ** 2) + (j - imgSize / 2) ** 2 / (sigma ** 2)))
         # 如果要可视化对比正方形和最大内切圆高斯图的区别，注释下面这行即可
         isotropicGrayscaleImage = isotropicGrayscaleImage * circle_mask
         isotropicGrayscaleImage = (isotropicGrayscaleImage / np.max(isotropicGrayscaleImage)).astype(np.float32)
 
         isotropicGrayscaleImage = (isotropicGrayscaleImage / np.max(isotropicGrayscaleImage) * 255).astype(np.uint8)
         isotropicGrayscaleImageColor = cv2.applyColorMap(isotropicGrayscaleImage, cv2.COLORMAP_JET)
+
         return isotropicGrayscaleImage, isotropicGrayscaleImageColor
+
 
     # 生成高斯图的mask，对于正方形的高斯图来说，只将最大内切圆作为字符的高斯图区域去学习
     # 在初版开源的高斯图生成中，是将正方形完整区域作为高斯图的
@@ -49,10 +49,6 @@ class GaussianTransformer(object):
         circle_img = np.zeros((imgSize, imgSize), np.float32)
         circle_mask = cv2.circle(circle_img, (imgSize//2, imgSize//2), imgSize//2, 1, -1)
 
-        # circle_mask = cv2.circle(circle_img, (imgSize//2, imgSize//2), imgSize//2, 255, -1)
-        # circle_mask = cv2.applyColorMap(circle_mask, cv2.COLORMAP_JET)
-        # cv2.imshow("circle", circle_mask)
-        # cv2.waitKey(0)
         return circle_mask
 
     # 将原始的box扩大1.5倍
@@ -77,12 +73,13 @@ class GaussianTransformer(object):
         return box
 
     def four_point_transform(self, target_bbox, save_dir=None):
-        '''
-
-        :param target_bbox:目标bbox
-        :param save_dir:如果不是None，则保存图片到save_dir中
+        """
+        Using the pts and the image a perspective transform is performed which returns the transformed 2d Gaussian image
+        :param target_bbox: np.array, dtype=np.uint8, shape = [height, width]
+        :param save_dir: np.array, dtype=np.float32 or np.int32, shape = [4, 2]
         :return:
-        '''
+        """
+
         width, height = np.max(target_bbox[:, 0]).astype(np.int32), np.max(target_bbox[:, 1]).astype(np.int32)
         right = self.standardGaussianHeat.shape[1] - 1
         bottom = self.standardGaussianHeat.shape[0] - 1
@@ -99,9 +96,19 @@ class GaussianTransformer(object):
         return warped, width, height
 
     def add_character(self, image, bbox, singal = None):
-        # bbox = self.enlargeBox(bbox, image.shape[0], image.shape[1])
+
+        """
+        mapping Gaussian heat maps to the character box coordinates of the image.
+        :param target_bbox: np.array, dtype=np.uint8, shape = [height, width]
+        :param save_dir: np.array, dtype=np.float32 or np.int32, shape = [4, 2]
+        :return:
+        """
+
+
+        #bbox = self.enlargeBox(bbox, image.shape[0], image.shape[1])
         bbxo_copy = bbox.copy()
         bbox = enlargebox(bbox, image.shape[0], image.shape[1])
+
         if singal == "affinity":
             bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = bbxo_copy[0][0], bbxo_copy[1][0], bbxo_copy[2][0], bbxo_copy[3][0]
 
@@ -122,6 +129,9 @@ class GaussianTransformer(object):
             score_map = np.where(transformed > score_map, transformed, score_map)
             image[top_left[1]:top_left[1] + transformed.shape[0],
             top_left[0]:top_left[0] + transformed.shape[1]] = score_map
+
+
+
         except Exception as e:
             # print('tansformed shape:{}\n image top_left shape:{}\n top transformed shape:{}\n width and hright:{}\n ori box:{}\n top left:{}\n point:{}\n min width height:{}\n bbox:{}\n'
             #       .format(transformed.shape, image[top_left[1]:top_left[1],
@@ -129,6 +139,8 @@ class GaussianTransformer(object):
             # top_left[0]:top_left[0] + transformed.shape[1]].shape, (width, height), ori_box, top_left,point,
             #       np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32),
             #       ori_box-np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32)))
+
+            #import ipdb;ipdb.set_trace()
             print('second filter {} {} {}'.format(width,height,singal))
         return image
 
