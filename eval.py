@@ -40,6 +40,100 @@ def copyStateDict(state_dict):
         new_state_dict[name] = v
     return new_state_dict
 
+def saveResult_2015(img_file, img, boxes, dirname='./result/', gt_file=None ):
+
+    """ save text detection result one by one
+    Args:
+        img_file (str): image file name
+        img (array): raw image context
+        boxes (array): array of result file
+            Shape: [num_detections, 4] for BB output / [num_detections, 4] for QUAD output
+    Return:
+        None
+    """
+
+
+    img = np.array(img)
+
+    # make result file list
+    filename, file_ext = os.path.splitext(os.path.basename(img_file))
+
+
+    for i, box in enumerate(boxes):
+
+        poly = np.array(box).astype(np.int32).reshape((-1))
+        poly = poly.reshape(-1, 2)
+        try:
+            cv2.polylines(img, [poly.reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=2)
+        except:
+            pass
+
+    if gt_file is not None:
+
+        gt_name = "gt_" + filename + '.txt'
+
+        with open(os.path.join(gt_file, gt_name), 'r', encoding="utf8", errors='ignore') as d:
+            for l in d.read().splitlines():
+                box = l.split(',')
+
+                box_gt = np.array(list(map(int, box[:8])))
+                gt_poly = box_gt.reshape(-1, 2)
+                gt_poly = np.array(gt_poly).astype(np.int32)
+
+                if box[-1] == '###':
+                    cv2.polylines(img, [gt_poly.reshape((-1, 1, 2))], True, color=(128, 128, 128), thickness=2)
+                else:
+                    cv2.polylines(img, [gt_poly.reshape((-1, 1, 2))], True, color=(0, 0, 255), thickness=2)
+
+    # Save result image
+    res_img_path = dirname + "/res_" + filename + '.jpg'
+    cv2.imwrite(res_img_path, img)
+
+
+
+def saveResult_2013(img_file, img, boxes, dirname='./result/', gt_file=None):
+    """ save text detection result one by one
+    Args:
+        img_file (str): image file name
+        img (array): raw image context
+        boxes (array): array of result file
+            Shape: [num_detections, 4] for BB output / [num_detections, 4] for QUAD output
+    Return:
+        None
+    """
+    img = np.array(img)
+
+    # make result file list
+    filename, file_ext = os.path.splitext(os.path.basename(img_file))
+
+    for i, box in enumerate(boxes):
+
+        poly = np.array(box).astype(np.int32).reshape((-1))
+        poly = poly.reshape(-1, 2)
+        try:
+            cv2.polylines(img, [poly.reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=2)
+        except:
+            pass
+
+    if gt_file is not None:
+
+        gt_name = "gt_" + filename + '.txt'
+
+        with open(os.path.join(gt_file, gt_name), 'r', encoding="utf8", errors='ignore') as d:
+            for l in d.read().splitlines():
+                box = l.split(',')
+                box = [int(box[j]) for j in range(4)]
+                box_gt = np.array([[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]])
+
+                gt_poly = box_gt.reshape(-1, 2)
+                gt_poly = np.array(gt_poly).astype(np.int32)
+
+                cv2.polylines(img, [gt_poly.reshape((-1, 1, 2))], True, color=(0, 0, 255), thickness=2)
+
+
+    # Save result image
+    res_img_path = dirname + "/res_" + filename + '.jpg'
+    cv2.imwrite(res_img_path, img)
 
 
 def main(model, args, evaluator, data_li=''):
@@ -54,16 +148,18 @@ def main(model, args, evaluator, data_li=''):
 
 
         if test_folder.split('/')[-1].lower() == 'icdar2013':
-            total_imgs_bboxes_gt, total_img_path = load_icdar2013_gt(dataFolder=test_folder,
+            total_imgs_bboxes_gt, total_img_path, gt_folder_path = load_icdar2013_gt(dataFolder=test_folder,
                                                                      isTraing=args.isTraingDataset)
         else:
-            total_imgs_bboxes_gt, total_img_path = load_icdar2015_gt(dataFolder=test_folder,
+            total_imgs_bboxes_gt, total_img_path, gt_folder_path = load_icdar2015_gt(dataFolder=test_folder,
                                                                      isTraing=args.isTraingDataset)
 
 
     total_img_bboxes_pre = []
     for k, img_path in enumerate(tqdm(total_img_path)):
-        image = imgproc.loadImage(img_path)
+        image = cv2.imread(img_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        #image = imgproc.loadImage(img_path)
         single_img_bbox = []
         bboxes, polys, score_text = test_net(model,
                                              image,
@@ -77,13 +173,30 @@ def main(model, args, evaluator, data_li=''):
 
         # # ---------------------------------------------------------------------------------------------------------------#
 
-        #rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395]
+        if test_folder.split('/')[-1].lower() == 'icdar2013':
+            rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
+                        105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
+
+        else:
+            rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
+                        399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
+
 
         viz = True
-        #if k in rnd_list:
-        #    viz = True
+        if k in rnd_list:
+           viz = True
 
         if viz == True:
+            outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
+            if not os.path.exists(outpath):
+                os.makedirs(outpath)
+
+            if test_folder.split('/')[-1].lower() == 'icdar2013':
+                saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+            else:
+                saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+
+
 
             height, width, channel = image.shape
             overlay_region = cv2.resize(score_text[0], (width, height))
@@ -91,9 +204,7 @@ def main(model, args, evaluator, data_li=''):
 
             overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
             overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
-            outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
+
 
             # save overlay
             filename, file_ext = os.path.splitext(os.path.basename(img_path))
@@ -104,8 +215,8 @@ def main(model, args, evaluator, data_li=''):
             overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
             cv2.imwrite(overlay_aff_file, overlay_aff)
 
-            ori_image_path = outpath + "/res_" + filename + '.jpg'
-            cv2.imwrite(ori_image_path,image)
+            #ori_image_path = outpath + "/res_" + filename + '.jpg'
+            #cv2.imwrite(ori_image_path,image)
 
         # # ---------------------------------------------------------------------------------------------------------------#
 

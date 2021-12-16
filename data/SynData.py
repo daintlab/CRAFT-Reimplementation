@@ -134,7 +134,7 @@ class craftDataset(object):
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # image = random_scale(image, word_bboxes, self.target_size)
+        #image = random_scale(image, word_bboxes, self.target_size)
 
         confidence_mask = np.ones((image.shape[0], image.shape[1]), np.float32)
 

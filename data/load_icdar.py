@@ -100,7 +100,7 @@ def load_icdar2015_gt(dataFolder, isTraing=False):
             single_img_bboxes.append(boxInfos)
         total_imgs_bboxes.append(single_img_bboxes)
         total_img_path.append(img_path)
-    return total_imgs_bboxes, total_img_path
+    return total_imgs_bboxes, total_img_path, os.path.join(dataFolder, gt_folderName)
 
 def load_icdar2013_gt(dataFolder, isTraing=False):
     if isTraing:
@@ -154,4 +154,4 @@ def load_icdar2013_gt(dataFolder, isTraing=False):
             single_img_bboxes.append(boxInfos)
         total_imgs_bboxes.append(single_img_bboxes)
         total_img_path.append(img_path)
-    return total_imgs_bboxes, total_img_path
+    return total_imgs_bboxes, total_img_path, os.path.join(dataFolder, gt_folderName)

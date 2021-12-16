@@ -7,3 +7,4 @@ ITER = 0
 RESULT_DIR = ""
 CONFIDENCE_CHECK = ""
 CHECK = 0
+AUG = False

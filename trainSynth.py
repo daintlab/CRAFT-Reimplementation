@@ -20,7 +20,8 @@ from metrics.eval_det_iou import DetectionIoUEvaluator
 
 
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
-
+def str2bool(v):
+    return v.lower() in ("yes", "y", "true", "t", "1")
 
 parser.add_argument('--results_dir', default='/data/workspace/woans0104/CRAFT-re-backtime92/exp/weekly_back_2', type=str,
                     help='Path to save checkpoints')
@@ -28,22 +29,21 @@ parser.add_argument('--synthData_dir', default='/home/data/ocr/detection/SynthTe
                     help='Path to root directory of SynthText dataset')
 parser.add_argument('--batch_size', default=16, type = int,
                     help='batch size of training')
-parser.add_argument('--iter', default=50000, type = int,
+parser.add_argument('--iter', default=10, type = int,
                     help='batch size of training')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     help='initial learning rate')
+parser.add_argument('--lr-decay', default=10000, type=int, help='learning rate decay')
 parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
                     help='Weight decay for SGD')
 parser.add_argument('--num_workers', default=8, type=int,
                     help='Number of workers used in dataloading')
-
-
+parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 
 #for test
-def str2bool(v):
-    return v.lower() in ("yes", "y", "true", "t", "1")
+
 
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
 parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
@@ -94,6 +94,8 @@ if __name__ == "__main__":
 
 
     save_parser(args)
+    config.AUG = args.aug
+
 
     synthData_dir = {"synthtext": args.synthData_dir}
     synthDataLoader = SynthTextDataLoader(target_size=768, data_dir_list=synthData_dir, mode='train')
@@ -125,19 +127,19 @@ if __name__ == "__main__":
     trn_logger, val_logger = make_logger(path=args.results_dir)
 
     whole_training_step = args.iter
-    update_lr_rate_step = 0
-    training_lr = 1e-4
+    update_lr_rate_step = 1
+    training_lr = args.lr
     train_step = 0
     loss_value = 0
     batch_time = 0
     losses = AverageMeter()
 
-    while train_step <= whole_training_step:
+    while train_step < whole_training_step:
 
         for index, (image, region_image, affinity_image, confidence_mask, confidences) in enumerate(train_loader):
             start_time = time.time()
             craft.train()
-            if train_step>0 and train_step % 20000==0:
+            if train_step>0 and train_step % args.lr_decay==0:
                 training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
                 update_lr_rate_step += 1
 
@@ -197,6 +199,7 @@ if __name__ == "__main__":
             train_step += 1
             config.ITER +=1
 
+            if train_step >= whole_training_step : break
 
 
 

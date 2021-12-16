@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
     train_step = args.st_iter
     whole_training_step = args.end_iter
-    update_lr_rate_step = 0
+    update_lr_rate_step = 1
     training_lr = args.lr
     loss_value = 0
     batch_time = 0

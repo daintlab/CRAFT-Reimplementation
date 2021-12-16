@@ -177,8 +177,8 @@ class SynthTextDataLoader(data.Dataset):
             bboxes = _charbox[total:total + len(words[i])]
 
             # fix negative coordinates
-            bboxes[:, :, 0] = np.clip(bboxes[:, :, 0], 0, image.shape[1])
-            bboxes[:, :, 1] = np.clip(bboxes[:, :, 1], 0, image.shape[0])
+            # bboxes[:, :, 0] = np.clip(bboxes[:, :, 0], 0, image.shape[1])
+            # bboxes[:, :, 1] = np.clip(bboxes[:, :, 1], 0, image.shape[0])
 
             assert len(bboxes) == len(words[i])
             total += len(words[i])
@@ -196,10 +196,10 @@ class SynthTextDataLoader(data.Dataset):
 
 
         #check negative coordinates
-        for cb in character_bboxes :
-            if (cb < 0).astype('float32').sum() > 0 :
-                import ipdb;
-                ipdb.set_trace()
+        # for cb in character_bboxes :
+        #     if (cb < 0).astype('float32').sum() > 0 :
+        #         import ipdb;
+        #         ipdb.set_trace()
 
 
 
@@ -227,8 +227,10 @@ class SynthTextDataLoader(data.Dataset):
         random_transforms = [image, region_scores, affinities_scores, confidence_mask]
 
         random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-        random_transforms = random_horizontal_flip(random_transforms)
-        random_transforms = random_rotate(random_transforms)
+        if config.AUG == True:
+
+            random_transforms = random_horizontal_flip(random_transforms)
+            random_transforms = random_rotate(random_transforms)
 
         image, region_image, affinity_image, confidence_mask = random_transforms
 
@@ -244,7 +246,8 @@ class SynthTextDataLoader(data.Dataset):
 
         image = Image.fromarray(image)
         image = image.convert('RGB')
-        image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
+        if config.AUG == True:
+            image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
 
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
@@ -296,9 +299,6 @@ class ICDAR2015(data.Dataset):
 
     def get_imagename(self, index):
         return self.images_path[index]
-
-
-
 
 
     def load_gt(self, gt_path):
@@ -598,8 +598,9 @@ class ICDAR2015(data.Dataset):
         # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
 
         random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-        random_transforms = random_horizontal_flip(random_transforms)
-        random_transforms = random_rotate(random_transforms)
+        if config.AUG == True:
+            random_transforms = random_horizontal_flip(random_transforms)
+            random_transforms = random_rotate(random_transforms)
         image, region_image, affinity_image, confidence_mask = random_transforms
 
         # resize label
@@ -612,7 +613,8 @@ class ICDAR2015(data.Dataset):
 
         image = Image.fromarray(image)
         image = image.convert('RGB')
-        image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
+        if config.AUG == True:
+            image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
 
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
