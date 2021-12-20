@@ -56,7 +56,7 @@ class Maploss(nn.Module):
         affi_loss = self.single_image_loss(loss_affinity, affinity_socres_label)
         return char_loss + affi_loss
 
-#
+
 #
 # class Maploss(nn.Module):
 #     def __init__(self, use_gpu = True):

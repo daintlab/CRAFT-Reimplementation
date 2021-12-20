@@ -25,6 +25,9 @@ from utils import craft_utils
 
 
 def saveInput(imagename, image, region_scores, affinity_scores, confidence_mask):
+    image = np.uint8(image.copy())
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
     boxes, polys = craft_utils.getDetBoxes(region_scores / 255, affinity_scores / 255, 0.7, 0.4, 0.4, False)
     boxes = np.array(boxes, np.int32) * 2
     if len(boxes) > 0:
@@ -42,8 +45,8 @@ def saveInput(imagename, image, region_scores, affinity_scores, confidence_mask)
     overlay_aff = cv2.resize(target_gaussian_affinity_heatmap_color, (width, height))
     confidence_mask_gray = cv2.resize(confidence_mask_gray, (width, height))
 
-    overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
-    overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.7, 6)
+    overlay_region = cv2.addWeighted(image, 0.4, overlay_region, 0.6, 5)
+    overlay_aff = cv2.addWeighted(image, 0.4, overlay_aff, 0.7, 6)
 
     gt_scores = np.concatenate([overlay_region, overlay_aff], axis=1)
     confidence_mask_gray = np.concatenate([np.zeros_like(confidence_mask_gray), confidence_mask_gray], axis=1)
@@ -54,7 +57,7 @@ def saveInput(imagename, image, region_scores, affinity_scores, confidence_mask)
 
     outpath = os.path.join(os.path.join(config.RESULT_DIR, '{}/input'.format(str(config.ITER // 100))),
                            "%s_input.jpg" % imagename)
-    print(outpath)
+    #print(outpath)
     if not os.path.exists(os.path.dirname(outpath)):
         os.makedirs(os.path.dirname(outpath))
 
@@ -88,7 +91,7 @@ def saveImage(imagename, image, bboxes, affinity_bboxes, region_scores, affinity
     output = np.concatenate([output_image, heat_map, confidence_mask_gray], axis=1)
 
     outpath = os.path.join(os.path.join(config.RESULT_DIR, '{}/input'.format(str(config.ITER // 100))), imagename)
-    print(outpath)
+    #print(outpath)
     if not os.path.exists(os.path.dirname(outpath)):
         os.makedirs(os.path.dirname(outpath))
 
@@ -164,6 +167,7 @@ class SynthTextDataLoader(data.Dataset):
     def load_synthtext_image_gt(self, index):
         img_path = os.path.join(self.data_dir_list["synthtext"], self.image[index][0])
         image = cv2.imread(img_path, cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         _charbox = self.charbox[index].transpose((2, 1, 0))
         image = random_scale(image, _charbox, self.target_size)
         words = [re.split(' \n|\n |\n| ', t.strip()) for t in self.imgtxt[index]]
@@ -244,11 +248,14 @@ class SynthTextDataLoader(data.Dataset):
             saveInput(self.image[index][0], image, region_image, affinity_image, confidence_mask)
             self.viz = False
 
-        image = Image.fromarray(image)
-        image = image.convert('RGB')
+        try:
+            image = Image.fromarray(image.astype('uint8'))
+        except:
+            import ipdb;ipdb.set_trace()
+
         if config.AUG == True:
             image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
-
+            #image = transforms.ColorJitter(brightness=32.0 / 255, contrast=0.5, saturation=0.5, hue=0.25)(image)
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
         image = image.transpose(2, 0, 1)
@@ -286,7 +293,7 @@ class ICDAR2015(data.Dataset):
         self.images_path = []
         for imagename in imagenames:
             self.images_path.append(imagename)
-
+        self.rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
         self.viz = viz
 
 
@@ -376,6 +383,7 @@ class ICDAR2015(data.Dataset):
             real_word_without_space = word.replace('\s', '')
             real_char_nums = len(real_word_without_space)
             input = word_image.copy()
+            # 왜 64로 scale 조절을 하는 걸까?? --> https://github.com/clovaai/CRAFT-pytorch/issues/18
             scale = 64.0 / input.shape[0]
             input = cv2.resize(input, None, fx=scale, fy=scale)
             input_copy = input.copy()
@@ -389,16 +397,11 @@ class ICDAR2015(data.Dataset):
             region_scores = scores[0, :, :, 0].cpu().data.numpy()
             region_scores = np.uint8(np.clip(region_scores, 0, 1) * 255)
             bgr_region_scores = cv2.resize(region_scores, (input.shape[1], input.shape[0]))
-            bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2BGR)
+            bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
 
 
             #pursedo_bboxes, color_markers = watershed4(bgr_region_scores, viz=False)
             pursedo_bboxes, color_markers = watershed(input, bgr_region_scores, viz=False)
-
-
-
-            #pursedo_bboxes[:,:, 0] = np.clip(pursedo_bboxes[:,:, 0], 0, bgr_region_scores.shape[1])
-            #pursedo_bboxes[:,:, 1] = np.clip(pursedo_bboxes[:,:, 1], 0, bgr_region_scores.shape[0])
 
 
 
@@ -418,6 +421,12 @@ class ICDAR2015(data.Dataset):
                 index = np.argsort(pursedo_bboxes[:, 0, 0])
                 pursedo_bboxes = pursedo_bboxes[index]
 
+
+            try:
+                pursedo_bboxes[:,:, 0] = np.clip(pursedo_bboxes[:,:, 0], 0, bgr_region_scores.shape[1])
+                pursedo_bboxes[:,:, 1] = np.clip(pursedo_bboxes[:,:, 1], 0, bgr_region_scores.shape[0])
+            except:
+                pass
 
             confidence = self.get_confidence(real_char_nums, len(pursedo_bboxes))
 
@@ -470,7 +479,11 @@ class ICDAR2015(data.Dataset):
                                            input_copy1[:, :, ::-1],input_copy2[:, :, ::-1]])
 
 
-                    cv2.imwrite('exp/{}'.format(imagename), viz_image)
+                    save_path = os.path.join(config.RESULT_DIR, str(config.ITER//100))
+                    if not os.path.exists(os.path.dirname(save_path)):
+                        os.makedirs(os.path.dirname(save_path))
+                    cv2.imwrite(os.path.join(save_path, '{}_{}'.format(imagename, 'hstack.jpg')), viz_image)
+
 
                     viz=False
                 except:
@@ -524,7 +537,7 @@ class ICDAR2015(data.Dataset):
         character_bboxes = []
         new_words = []
         confidences = []
-
+        new_imagename = ''
         if len(word_bboxes) > 0:
             for i in range(len(word_bboxes)):
                 if words[i] == '###' or len(words[i].strip()) == 0:
@@ -534,11 +547,15 @@ class ICDAR2015(data.Dataset):
 
 
                 pursedo_viz = False
+                if int(imagename.split('.')[0].split('_')[1]) in self.rnd_list :
+                    pursedo_viz = True
+                    new_imagename = imagename.split('.')[0] +'_'+str(i)
+
                 pursedo_bboxes, bbox_region_scores, confidence = self.inference_pursedo_bboxes(self.net, image,
                                                                                                word_bboxes[i],
                                                                                                words[i],
                                                                                                viz=pursedo_viz,
-                                                                                               imagename=imagename)
+                                                                                               imagename=new_imagename)
 
 
                 confidences.append(confidence)
@@ -586,11 +603,9 @@ class ICDAR2015(data.Dataset):
                 self.get_imagename(index).split('_')[0] == 'img':
             self.viz = True
 
-
         if self.viz:
-            saveImage(self.get_imagename(index), image.copy(), character_bboxes, affinity_bboxes, region_scores,
-                           affinities_scores,
-                           confidence_mask)
+            saveImage(self.get_imagename(index), image.copy(), character_bboxes.copy(), affinity_bboxes.copy(),
+                      region_scores.copy(),affinities_scores.copy(),confidence_mask.copy())
 
 
         random_transforms = [image, region_scores, affinities_scores, confidence_mask]
@@ -603,16 +618,21 @@ class ICDAR2015(data.Dataset):
             random_transforms = random_rotate(random_transforms)
         image, region_image, affinity_image, confidence_mask = random_transforms
 
+
         # resize label
         region_image = self.resizeGt(region_image)
         affinity_image = self.resizeGt(affinity_image)
         confidence_mask = self.resizeGt(confidence_mask)
 
-        if self.viz:
-            saveInput(self.get_imagename(index), image, region_image, affinity_image, confidence_mask)
 
-        image = Image.fromarray(image)
-        image = image.convert('RGB')
+
+        if self.viz:
+            saveInput(self.get_imagename(index), image.copy(), region_image.copy(), affinity_image.copy(), confidence_mask.copy())
+
+        try:
+            image = Image.fromarray(image.astype('uint8'))
+        except:
+            import ipdb;ipdb.set_trace()
         if config.AUG == True:
             image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
 

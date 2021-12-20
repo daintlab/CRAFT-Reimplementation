@@ -58,7 +58,7 @@ def watershed(image,region_score, viz):
     ori_region_score = region_score.copy()
 
     if len(region_score.shape) == 3:
-        gray = cv2.cvtColor(region_score, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(region_score, cv2.COLOR_RGB2GRAY)
     else:
         gray = region_score
     if visual:

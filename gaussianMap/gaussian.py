@@ -142,6 +142,7 @@ class GaussianTransformer(object):
 
             #import ipdb;ipdb.set_trace()
             print('second filter {} {} {}'.format(width,height,singal))
+            print('error message {}'.format(e))
         return image
 
     def add_affinity(self, image, bbox_1, bbox_2):

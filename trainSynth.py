@@ -27,9 +27,13 @@ parser.add_argument('--results_dir', default='/data/workspace/woans0104/CRAFT-re
                     help='Path to save checkpoints')
 parser.add_argument('--synthData_dir', default='/home/data/ocr/detection/SynthText/SynthText', type=str,
                     help='Path to root directory of SynthText dataset')
+parser.add_argument("--ckpt_path", default='', type=str,
+                    help="path to pretrained model")
 parser.add_argument('--batch_size', default=16, type = int,
                     help='batch size of training')
 parser.add_argument('--iter', default=10, type = int,
+                    help='batch size of training')
+parser.add_argument('--st_iter', default=0, type = int,
                     help='batch size of training')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     help='initial learning rate')
@@ -117,19 +121,37 @@ if __name__ == "__main__":
 
 
     craft = CRAFT(pretrained=True)
-    craft = torch.nn.DataParallel(craft).cuda()
 
+    if args.st_iter != 0:
+        print('success craft_load')
+        net_param = torch.load(args.ckpt_path)
+        try:
+            craft.load_state_dict(copyStateDict(net_param['craft']))
+        except:
+            craft.load_state_dict(copyStateDict(net_param))
+
+
+    craft = torch.nn.DataParallel(craft).cuda()
+    torch.backends.cudnn.benchmark =True
 
     optimizer = optim.Adam(craft.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
+    if args.st_iter != 0:
+        print('success optim_load')
+        optimizer.load_state_dict(copyStateDict(net_param['optimizer']))
+        args.st_iter = net_param['optimizer']['state'][0]['step']
+        args.lr = net_param['optimizer']['param_groups'][0]['lr']
+
+
     criterion = Maploss()
 
     #logger
     trn_logger, val_logger = make_logger(path=args.results_dir)
 
+    train_step = args.st_iter
     whole_training_step = args.iter
-    update_lr_rate_step = 1
+    update_lr_rate_step = 0
     training_lr = args.lr
-    train_step = 0
     loss_value = 0
     batch_time = 0
     losses = AverageMeter()
@@ -140,8 +162,9 @@ if __name__ == "__main__":
             start_time = time.time()
             craft.train()
             if train_step>0 and train_step % args.lr_decay==0:
-                training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
                 update_lr_rate_step += 1
+                training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
+
 
             images = Variable(image).cuda()
             region_image_label = Variable(region_image).cuda()
@@ -204,9 +227,13 @@ if __name__ == "__main__":
 
 
     #last model save
+    torch.save({
+        'iter': train_step,
+        'craft': craft.state_dict(),
+        'optimizer': optimizer.state_dict()
+    }, args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth')
 
     evaluator = DetectionIoUEvaluator()
     metrics = main(craft, args, evaluator)
-    val_logger.write([train_step, losses.avg, str(np.round(metrics['precision'], 3)),
-                      str(np.round(metrics['recall'], 3)),str(np.round(metrics['hmean'], 3))])
+    val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])
 

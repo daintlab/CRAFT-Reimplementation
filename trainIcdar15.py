@@ -22,6 +22,8 @@ from metrics.eval_det_iou import DetectionIoUEvaluator
 
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
+def str2bool(v):
+    return v.lower() in ("yes", "y", "true", "t", "1")
 
 parser.add_argument('--results_dir', default='/data/workspace/woans0104/CRAFT-re-backtime92/exp/weekly_back_2', type=str,
                     help='Path to save checkpoints')
@@ -29,7 +31,8 @@ parser.add_argument('--synthData_dir', default='/home/data/ocr/detection/SynthTe
                     help='Path to root directory of SynthText dataset')
 parser.add_argument('--icdar2015_dir', default='/home/data/ocr/detection/ICDAR2015', type=str,
                     help='Path to root directory of icdar2015 dataset')
-parser.add_argument("--ckpt_path", default='', type=str,
+parser.add_argument("--ckpt_path", default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/1216_exp/backnew-base-syn-1/'
+                                           'CRAFT_clr_100000.pth', type=str,
                     help="path to pretrained model")
 parser.add_argument('--st_iter', default=0, type = int,
                     help='batch size of training')
@@ -37,6 +40,7 @@ parser.add_argument('--end_iter', default=50000, type = int,
                     help='batch size of training')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     help='initial learning rate')
+parser.add_argument('--lr-decay', default=10000, type=int, help='learning rate decay')
 parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
@@ -45,10 +49,9 @@ parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--sigma', default=0, type=int,
                     help='Number of workers used in dataloading')
+parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 
 #for test
-def str2bool(v):
-    return v.lower() in ("yes", "y", "true", "t", "1")
 
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
 parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
@@ -59,7 +62,8 @@ parser.add_argument('--canvas_size', default=2240, type=int, help='image size fo
 parser.add_argument('--mag_ratio', default=2, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
-parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015', type=str, help='folder path to input images')
+parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015', type=str,
+                    help='folder path to input images')
 
 args = parser.parse_args()
 
@@ -96,6 +100,7 @@ if __name__ == "__main__":
         os.mkdir(args.results_dir)
 
     utils.config.RESULT_DIR = args.results_dir
+    utils.config.AUG = args.aug
 
     # 1. data load
     # 1-1. synthData load
@@ -158,7 +163,7 @@ if __name__ == "__main__":
 
     train_step = args.st_iter
     whole_training_step = args.end_iter
-    update_lr_rate_step = 1
+    update_lr_rate_step = 0
     training_lr = args.lr
     loss_value = 0
     batch_time = 0
@@ -170,9 +175,10 @@ if __name__ == "__main__":
         for index, (real_images, real_region_label, real_affi_label, real_confidence_mask, real_confidences) in enumerate(real_data_loader):
             start_time = time.time()
             craft.train()
-            if train_step>0 and train_step % 10000==0:
-                training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
+            if train_step>0 and train_step % args.lr_decay==0:
                 update_lr_rate_step += 1
+                training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
+
 
 
             # syn image load
@@ -250,3 +256,15 @@ if __name__ == "__main__":
 
             train_step += 1
             utils.config.ITER = train_step
+
+
+    #last model save
+    torch.save({
+        'iter': train_step,
+        'craft': craft.state_dict(),
+        'optimizer': optimizer.state_dict()
+    }, args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth')
+
+    evaluator = DetectionIoUEvaluator()
+    metrics = main(craft, args, evaluator)
+    val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])

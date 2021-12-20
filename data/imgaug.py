@@ -27,11 +27,11 @@ def random_scale(img, bboxes, min_size):
 def padding_image(image,imgsize):
     length = max(image.shape[0:2])
     if len(image.shape) == 3:
-        img = np.zeros((imgsize, imgsize, len(image.shape)), dtype = np.uint8)
+        img = np.zeros((imgsize, imgsize, len(image.shape)), dtype = np.float32)
     else:
-        img = np.zeros((imgsize, imgsize), dtype = np.uint8)
+        img = np.zeros((imgsize, imgsize), dtype = np.float32)
     scale = imgsize / length
-    image = cv2.resize(image, dsize=None, fx=scale, fy=scale)
+    image = cv2.resize(image, dsize=None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
     if len(image.shape) == 3:
         img[:image.shape[0], :image.shape[1], :] = image
     else:
