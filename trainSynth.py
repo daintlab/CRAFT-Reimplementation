@@ -22,11 +22,11 @@ from metrics.eval_det_iou import DetectionIoUEvaluator
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
 
-parser.add_argument('--results_dir', default='/data/workspace/woans0104/CRAFT-re-backtime92/exp/weekly_back_2', type=str,
+parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v1', type=str,
                     help='Path to save checkpoints')
-parser.add_argument('--synthData_dir', default='/home/data/ocr/detection/SynthText/SynthText', type=str,
+parser.add_argument('--synthData_dir', default='/data/SynthText', type=str,
                     help='Path to root directory of SynthText dataset')
-parser.add_argument('--batch_size', default=16, type = int,
+parser.add_argument('--batch_size', default=8, type = int,
                     help='batch size of training')
 parser.add_argument('--iter', default=50000, type = int,
                     help='batch size of training')
@@ -36,7 +36,7 @@ parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
                     help='Weight decay for SGD')
-parser.add_argument('--num_workers', default=8, type=int,
+parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 
 
@@ -50,12 +50,12 @@ parser.add_argument('--text_threshold', default=0.7, type=float, help='text conf
 parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
 parser.add_argument('--link_threshold', default=0.4, type=float, help='link confidence threshold')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
-parser.add_argument('--canvas_size', default=960, type=int, help='image size for inference')
-parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
+parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
+parser.add_argument('--mag_ratio', default=2.0, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
 #parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015', type=str, help='folder path to input images')
-parser.add_argument('--test_folder', default='/data/ICDAR2013', type=str, help='folder path to input images')
+parser.add_argument('--test_folder', default='/data/ICDAR2015', type=str, help='folder path to input images')
 
 
 
@@ -115,24 +115,46 @@ if __name__ == "__main__":
 
 
     craft = CRAFT(pretrained=True)
-    craft = torch.nn.DataParallel(craft).cuda()
-
-
     optimizer = optim.Adam(craft.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     criterion = Maploss()
+
+    # automatically resume from checkpoint if it exists
+    if os.path.exists(args.results_dir + '/checkpoint.pth'):
+        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint.pth'), map_location='cpu')
+        new_state_dict = OrderedDict()
+        for k, v in ckpt['craft'].items():
+            # remove prefix : 'module'
+            name = k[7:]
+            new_state_dict[name] = v
+        train_step = ckpt['iter']
+        craft.load_state_dict(new_state_dict)
+        optimizer.load_state_dict(ckpt['optimizer'])
+
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to('cuda:0')
+
+        # print('============= Use checkpoint model =============', time.time()-main_start_time)
+    else:
+        train_step = 0
+
+    craft = craft.cuda()
+    # summary(net, (3, 3, 3))
+    craft = torch.nn.DataParallel(craft).cuda()
+    cudnn.benchmark = True
 
     #logger
     trn_logger, val_logger = make_logger(path=args.results_dir)
 
     whole_training_step = args.iter
-    update_lr_rate_step = 0
+    update_lr_rate_step = 1
     training_lr = 1e-4
-    train_step = 0
     loss_value = 0
     batch_time = 0
     losses = AverageMeter()
 
-    while train_step <= whole_training_step:
+    while train_step < whole_training_step:
 
         for index, (image, region_image, affinity_image, confidence_mask, confidences) in enumerate(train_loader):
             start_time = time.time()
@@ -177,7 +199,7 @@ if __name__ == "__main__":
 
 
 
-            if train_step % 500 == 0 and train_step != 0:
+            if train_step % 1000 == 0 and train_step != 0:
 
                 print('Saving state, index:', train_step)
 
@@ -197,7 +219,8 @@ if __name__ == "__main__":
             train_step += 1
             config.ITER +=1
 
-
+        if train_step >= whole_training_step:
+            break
 
 
     #last model save

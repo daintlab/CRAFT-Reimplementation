@@ -177,8 +177,8 @@ class SynthTextDataLoader(data.Dataset):
             bboxes = _charbox[total:total + len(words[i])]
 
             # fix negative coordinates
-            bboxes[:, :, 0] = np.clip(bboxes[:, :, 0], 0, image.shape[1])
-            bboxes[:, :, 1] = np.clip(bboxes[:, :, 1], 0, image.shape[0])
+            # bboxes[:, :, 0] = np.clip(bboxes[:, :, 0], 0, image.shape[1])
+            # bboxes[:, :, 1] = np.clip(bboxes[:, :, 1], 0, image.shape[0])
 
             assert len(bboxes) == len(words[i])
             total += len(words[i])
@@ -196,10 +196,10 @@ class SynthTextDataLoader(data.Dataset):
 
 
         #check negative coordinates
-        for cb in character_bboxes :
-            if (cb < 0).astype('float32').sum() > 0 :
-                import ipdb;
-                ipdb.set_trace()
+        # for cb in character_bboxes :
+            # if (cb < 0).astype('float32').sum() > 0 :
+            #     import ipdb;
+            #     ipdb.set_trace()
 
 
 

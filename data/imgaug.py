@@ -31,7 +31,10 @@ def padding_image(image,imgsize):
     else:
         img = np.zeros((imgsize, imgsize), dtype = np.uint8)
     scale = imgsize / length
-    image = cv2.resize(image, dsize=None, fx=scale, fy=scale)
+    try:
+        image = cv2.resize(image, dsize=None, fx=scale, fy=scale)
+    except:
+        import ipdb;ipdb.set_trace()
     if len(image.shape) == 3:
         img[:image.shape[0], :image.shape[1], :] = image
     else:
@@ -49,7 +52,8 @@ def random_crop(imgs, img_size, character_bboxes):
     if len(character_bboxes) > 0:
         for bboxes in character_bboxes:
              word_bboxes.append(
-                [[bboxes[:, :, 0].min(), bboxes[:, :, 1].min()], [bboxes[:, :, 0].max(), bboxes[:, :, 1].max()]])
+                 # 음수일경우를 위해 바꿔줌
+                [[max(bboxes[:, :, 0].min(),0), max(bboxes[:, :, 1].min(),0)], [bboxes[:, :, 0].max(), bboxes[:, :, 1].max()]])
     word_bboxes = np.array(word_bboxes, np.int32)
 
     if random.random() > 0.6 and len(word_bboxes) > 0:
@@ -59,8 +63,11 @@ def random_crop(imgs, img_size, character_bboxes):
         top = max(sample_bboxes[1, 1] - img_size[0],0)
 
         if min(sample_bboxes[0, 1], h - th) < top or min(sample_bboxes[0, 0], w - tw) < left:
-            i = random.randint(0, h - th)
-            j = random.randint(0, w - tw)
+            if sample_bboxes[0,1] < 0 or sample_bboxes[0,0] < 0:
+                print(sample_bboxes)
+                import ipdb; ipdb.set_trace()
+            i = random.randint(0, sample_bboxes[0, 1])
+            j = random.randint(0, sample_bboxes[0, 0])
         else:
             i = random.randint(top, min(sample_bboxes[0, 1], h - th))
             j = random.randint(left, min(sample_bboxes[0, 0], w - tw))
@@ -73,7 +80,7 @@ def random_crop(imgs, img_size, character_bboxes):
         j = random.randint(0, w - tw)
 
         # i, j = 0, 0
-        # crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
+        crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
 
     for idx in range(len(imgs)):
         # crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] else th
@@ -84,8 +91,11 @@ def random_crop(imgs, img_size, character_bboxes):
         else:
             imgs[idx] = imgs[idx][i:i + crop_h, j:j + crop_w]
 
-        if crop_w > tw or crop_h > th:
-            imgs[idx] = padding_image(imgs[idx], tw)
+        # if crop_w > tw or crop_h > th:
+        imgs[idx] = padding_image(imgs[idx], tw)
+
+    if imgs[0].shape[0] != 768 or imgs[0].shape[1] != 768:
+        import ipdb;ipdb.set_trace()
 
     return imgs
 
