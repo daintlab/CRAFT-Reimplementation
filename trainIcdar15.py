@@ -40,7 +40,7 @@ parser.add_argument('--end_iter', default=50000, type = int,
                     help='batch size of training')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     help='initial learning rate')
-parser.add_argument('--lr-decay', default=10000, type=int, help='learning rate decay')
+parser.add_argument('--lr_decay', default=10000, type=int, help='learning rate decay')
 parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
@@ -231,7 +231,7 @@ if __name__ == "__main__":
 
 
 
-            if train_step % 500 == 0 and train_step != 0:
+            if train_step % 100 == 0 and train_step != 0:
 
                 print('Saving state, index:', train_step)
 

@@ -136,8 +136,28 @@ def saveResult_2013(img_file, img, boxes, dirname='./result/', gt_file=None):
     cv2.imwrite(res_img_path, img)
 
 
-def main(model, args, evaluator, data_li=''):
+def main(model_path, args, evaluator, data_li=''):
+
+
+    # load net
+
+    model = CRAFT()  # initialize
+
+    # net = UNetWithResnet50Encoder()
+    print('Loading weights from checkpoint (' + model_path + ')')
+    net_param = torch.load(model_path)
+
+    try:
+        model.load_state_dict(copyStateDict(net_param['craft']))
+    except:
+        model.load_state_dict(copyStateDict(net_param))
+
+    if args.cuda:
+        model = model.cuda()
+        model = torch.nn.DataParallel(model)
+        cudnn.benchmark = False
     model.eval()
+
 
     if data_li != '':
         total_imgs_bboxes_gt, total_img_path = load_synthtext_gt(args.synthData_dir, data_li=data_li)
@@ -171,49 +191,49 @@ def main(model, args, evaluator, data_li=''):
                                              args.canvas_size,
                                              args.mag_ratio)
 
-        # # # ---------------------------------------------------------------------------------------------------------------#
-
-        if test_folder.split('/')[-1].lower() == 'icdar2013':
-            rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
-                        105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
-
-        else:
-            rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
-                        399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
-
-
-        viz = True
-        if k in rnd_list:
-           viz = True
-
-        if viz == True:
-            outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
-
-            if test_folder.split('/')[-1].lower() == 'icdar2013':
-                saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-            else:
-                saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-
-
-
-            height, width, channel = image.shape
-            overlay_region = cv2.resize(score_text[0], (width, height))
-            overlay_aff = cv2.resize(score_text[1], (width, height))
-
-            overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
-            overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
-
-
-            # save overlay
-            filename, file_ext = os.path.splitext(os.path.basename(img_path))
-            overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
-            cv2.imwrite(overlay_region_file, overlay_region)
-
-            filename, file_ext = os.path.splitext(os.path.basename(img_path))
-            overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
-            cv2.imwrite(overlay_aff_file, overlay_aff)
+        # # # # ---------------------------------------------------------------------------------------------------------------#
+        #
+        # if test_folder.split('/')[-1].lower() == 'icdar2013':
+        #     rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
+        #                 105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
+        #
+        # else:
+        #     rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
+        #                 399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
+        #
+        #
+        # viz = True
+        # if k in rnd_list:
+        #    viz = True
+        #
+        # if viz == True:
+        #     outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
+        #     if not os.path.exists(outpath):
+        #         os.makedirs(outpath)
+        #
+        #     if test_folder.split('/')[-1].lower() == 'icdar2013':
+        #         saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+        #     else:
+        #         saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+        #
+        #
+        #
+        #     height, width, channel = image.shape
+        #     overlay_region = cv2.resize(score_text[0], (width, height))
+        #     overlay_aff = cv2.resize(score_text[1], (width, height))
+        #
+        #     overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
+        #     overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
+        #
+        #
+        #     # save overlay
+        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
+        #     overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
+        #     cv2.imwrite(overlay_region_file, overlay_region)
+        #
+        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
+        #     overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
+        #     cv2.imwrite(overlay_aff_file, overlay_aff)
 
             #ori_image_path = outpath + "/res_" + filename + '.jpg'
             #cv2.imwrite(ori_image_path,image)
@@ -236,6 +256,109 @@ def main(model, args, evaluator, data_li=''):
 
     return metrics
 
+#
+# def main(model, args, evaluator, data_li=''):
+#
+#     import ipdb;ipdb.set_trace()
+#     model.eval()
+#
+#     if data_li != '':
+#         total_imgs_bboxes_gt, total_img_path = load_synthtext_gt(args.synthData_dir, data_li=data_li)
+#
+#     else:
+#         test_folder = args.test_folder
+#
+#
+#
+#         if test_folder.split('/')[-1].lower() == 'icdar2013':
+#             total_imgs_bboxes_gt, total_img_path, gt_folder_path = load_icdar2013_gt(dataFolder=test_folder,
+#                                                                      isTraing=args.isTraingDataset)
+#         else:
+#             total_imgs_bboxes_gt, total_img_path, gt_folder_path = load_icdar2015_gt(dataFolder=test_folder,
+#                                                                      isTraing=args.isTraingDataset)
+#
+#
+#     total_img_bboxes_pre = []
+#     for k, img_path in enumerate(tqdm(total_img_path)):
+#         image = cv2.imread(img_path)
+#         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+#         #image = imgproc.loadImage(img_path)
+#         single_img_bbox = []
+#         bboxes, polys, score_text = test_net(model,
+#                                              image,
+#                                              args.text_threshold,
+#                                              args.link_threshold,
+#                                              args.low_text,
+#                                              args.cuda,
+#                                              args.poly,
+#                                              args.canvas_size,
+#                                              args.mag_ratio)
+#
+#         # # # ---------------------------------------------------------------------------------------------------------------#
+#
+#         if test_folder.split('/')[-1].lower() == 'icdar2013':
+#             rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
+#                         105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
+#
+#         else:
+#             rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
+#                         399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
+#
+#
+#         viz = True
+#         if k in rnd_list:
+#            viz = True
+#
+#         if viz == True:
+#             outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
+#             if not os.path.exists(outpath):
+#                 os.makedirs(outpath)
+#
+#             if test_folder.split('/')[-1].lower() == 'icdar2013':
+#                 saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+#             else:
+#                 saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+#
+#
+#
+#             height, width, channel = image.shape
+#             overlay_region = cv2.resize(score_text[0], (width, height))
+#             overlay_aff = cv2.resize(score_text[1], (width, height))
+#
+#             overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
+#             overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
+#
+#
+#             # save overlay
+#             filename, file_ext = os.path.splitext(os.path.basename(img_path))
+#             overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
+#             cv2.imwrite(overlay_region_file, overlay_region)
+#
+#             filename, file_ext = os.path.splitext(os.path.basename(img_path))
+#             overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
+#             cv2.imwrite(overlay_aff_file, overlay_aff)
+#
+#             #ori_image_path = outpath + "/res_" + filename + '.jpg'
+#             #cv2.imwrite(ori_image_path,image)
+#
+#         # # # ---------------------------------------------------------------------------------------------------------------#
+#
+#         for box in bboxes:
+#             box_info = {"points": None, "text": None, "ignore": None}
+#             box_info["points"] = box
+#             box_info["text"] = "###"
+#             box_info["ignore"] = False
+#             single_img_bbox.append(box_info)
+#         total_img_bboxes_pre.append(single_img_bbox)
+#     results = []
+#     for gt, pred in zip(total_imgs_bboxes_gt, total_img_bboxes_pre):
+#         results.append(evaluator.evaluate_image(gt, pred))
+#     metrics = evaluator.combine_results(results)
+#     print(metrics)
+#
+#
+#     return metrics
+
 if __name__ == '__main__':
 
 
@@ -247,6 +370,7 @@ if __name__ == '__main__':
     parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
     parser.add_argument('--link_threshold', default=0.4, type=float, help='link confidence threshold')
     parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
+    parser.add_argument('--amp', default=False, type=str2bool, help='Use cuda for inference')
     parser.add_argument('--canvas_size', default=960, type=int, help='image size for inference')
     parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
     parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
@@ -259,24 +383,7 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    # load net
-    net = CRAFT()     # initialize
-    #net = UNetWithResnet50Encoder()
-    print('Loading weights from checkpoint (' + args.trained_model + ')')
-    net_param = torch.load(args.trained_model)
 
-
-    try:
-        net.load_state_dict(copyStateDict(net_param['craft']))
-    except:
-        net.load_state_dict(copyStateDict(net_param))
-
-
-    if args.cuda:
-        net = net.cuda()
-        net = torch.nn.DataParallel(net)
-        cudnn.benchmark = False
-    net.eval()
     evaluator = DetectionIoUEvaluator()
 
-    main(net, args, evaluator)
+    main(args.trained_model, args, evaluator)

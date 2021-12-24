@@ -81,6 +81,12 @@ class GaussianTransformer(object):
         """
 
         width, height = np.max(target_bbox[:, 0]).astype(np.int32), np.max(target_bbox[:, 1]).astype(np.int32)
+
+        # if width == 0:
+        #     width = 1
+        # if height == 0:
+        #     height = 1
+
         right = self.standardGaussianHeat.shape[1] - 1
         bottom = self.standardGaussianHeat.shape[0] - 1
         ori = np.array([[0, 0], [right, 0],
@@ -110,9 +116,9 @@ class GaussianTransformer(object):
         bbox = enlargebox(bbox, image.shape[0], image.shape[1])
 
         if singal == "affinity":
-            bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = bbxo_copy[0][0], bbxo_copy[1][0], bbxo_copy[2][0], bbxo_copy[3][0]
+            bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = \
+                bbxo_copy[0][0], bbxo_copy[1][0], bbxo_copy[2][0], bbxo_copy[3][0]
 
-        # bbox = np.array([[45, 135], [135, 135], [135, 295], [45, 295]], dtype=np.float32)
 
         if np.any(bbox < 0) or np.any(bbox[:, 0] > image.shape[1]) or np.any(bbox[:, 1] > image.shape[0]):
             return image
@@ -121,8 +127,14 @@ class GaussianTransformer(object):
         point = top_left
         bbox -= top_left[None, :]
         transformed, width, height = self.four_point_transform(bbox.astype(np.float32))
+
+
         # if width * height < 10:
         #     return image
+
+
+
+
         try:
             score_map = image[top_left[1]:top_left[1] + transformed.shape[0],
                         top_left[0]:top_left[0] + transformed.shape[1]]

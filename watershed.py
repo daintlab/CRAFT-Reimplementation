@@ -17,7 +17,7 @@ import Polygon as plg
 
 from craft import CRAFT
 from collections import OrderedDict
-
+from data.boxEnlarge import enlargebox
 
 def copyStateDict(state_dict):
     if list(state_dict.keys())[0].startswith("module"):
@@ -132,6 +132,79 @@ def watershed(image,region_score, viz):
     return np.array(boxes), color_markers
 
 
+def watershed1(image, region_score,  visual):
+
+
+    boxes = []
+    if len(region_score.shape) == 3:
+        gray = cv2.cvtColor(region_score, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = region_score
+
+    if visual:
+        cv2.imwrite("exp/gray.jpg", gray)
+
+    ret, binary = cv2.threshold(gray, 0.2*np.max(gray), 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    mb = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=2)  # iterations连续两次开操作
+    sure_bg = cv2.dilate(mb, kernel, iterations=3)  # 3次膨胀,可以获取到大部分都是背景的区域
+    # sure_bg = mb
+    if visual:
+        cv2.imwrite("exp/sure_bg.jpg", sure_bg)
+        cv2.imwrite("exp/gray1.jpg", gray)
+
+    ret, sure_fg = cv2.threshold(gray, 0.7 * np.max(gray), 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    sure_fg = cv2.dilate(sure_fg, kernel, iterations=1)
+    if visual:
+        cv2.imwrite("exp/sure_fg.jpg", sure_fg)
+    surface_fg = np.uint8(sure_fg)
+    surface_bg = np.uint8(sure_bg)
+    unknown = cv2.subtract(surface_bg, surface_fg)
+
+    if visual:
+        cv2.imwrite("exp/unknown.jpg", unknown)
+    # 获取maskers,在markers中含有种子区域
+
+    ret, markers = cv2.connectedComponents(surface_fg)
+    # 分水岭变换
+    markers = markers + 1
+    markers[unknown == 255] = 0
+    markers = cv2.watershed(region_score, markers=markers)
+    region_score[markers == -1] = [0, 0, 255]
+
+
+    color_markers = np.uint8(markers + 1)
+    color_markers = color_markers / (color_markers.max() / 255)
+    color_markers = np.uint8(color_markers)
+    color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
+
+
+    if visual:
+        cv2.imwrite("exp/water.jpg", color_markers)
+
+    for i in range(2, np.max(markers) + 1):
+        np_contours = np.roll(np.array(np.where(markers == i)), 1, axis=0).transpose().reshape(-1, 2)
+        rectangle = cv2.minAreaRect(np_contours)
+        box = cv2.boxPoints(rectangle)
+
+        startidx = box.sum(axis=1).argmin()
+        box = np.roll(box, 4 - startidx, 0)
+        poly = plg.Polygon(box)
+        area = poly.area()
+        if area < 10:
+            continue
+        box = np.array(box)
+        #box = enlargebox(box,ori_image.shape[1], ori_image.shape[0])
+        boxes.append(box)
+
+        if visual:
+            cv2.polylines(image, [np.array(box, dtype=np.int)], True, (0, 255, 255), 1)
+            cv2.imwrite("exp/water1.jpg", image)
+
+
+
+    return np.array(boxes), color_markers
+
 
 def watershed4(region_score, viz ):
     # new backtime code
@@ -199,6 +272,7 @@ def watershed4(region_score, viz ):
         if area < 10:
             continue
         box = np.array(box)
+        box = enlargebox()
         boxes.append(box)
         # if visual:
         #     cv2.polylines(image, [np.array(box, dtype=np.int) * 2], True, (0, 255, 255), 1)
