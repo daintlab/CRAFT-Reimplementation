@@ -119,8 +119,8 @@ if __name__ == "__main__":
     criterion = Maploss()
 
     # automatically resume from checkpoint if it exists
-    if os.path.exists(args.results_dir + '/checkpoint_91000.pth'):
-        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint_91000.pth'), map_location='cpu')
+    if os.path.exists(args.results_dir + '/checkpoint_94000.pth'):
+        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint_94000.pth'), map_location='cpu')
         new_state_dict = OrderedDict()
         for k, v in ckpt['craft'].items():
             # remove prefix : 'module'

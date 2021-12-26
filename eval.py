@@ -17,6 +17,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 import utils.config
+import wandb
 
 from craft import CRAFT
 from data.load_icdar import load_icdar2015_gt, load_icdar2013_gt, load_synthtext_gt
@@ -24,6 +25,14 @@ from utils.inference_boxes import test_net
 from data import imgproc
 from collections import OrderedDict
 from metrics.eval_det_iou import DetectionIoUEvaluator
+
+config_defaults = {
+    'text_threshold': 0.7,
+    'low_text': 0.4,
+    'link_threshold': 0.2
+}
+wandb.init(project='ocr_craft', config=config_defaults)
+config = wandb.config
 
 
 def str2bool(v):
@@ -42,7 +51,7 @@ def copyStateDict(state_dict):
 
 
 
-def main(model, args, evaluator, data_li=''):
+def main(model, args, evaluator, wandb_config, data_li=''):
     model.eval()
 
     if data_li != '':
@@ -63,9 +72,9 @@ def main(model, args, evaluator, data_li=''):
         single_img_bbox = []
         bboxes, polys, score_text = test_net(model,
                                              image,
-                                             args.text_threshold,
-                                             args.link_threshold,
-                                             args.low_text,
+                                             config.text_threshold,
+                                             config.link_threshold,
+                                             config.low_text,
                                              args.cuda,
                                              args.poly,
                                              args.canvas_size,
@@ -117,36 +126,37 @@ def main(model, args, evaluator, data_li=''):
         results.append(evaluator.evaluate_image(gt, pred))
     metrics = evaluator.combine_results(results)
     print(metrics)
-
+    wandb.log({"precision": metrics['precision'], "recall": metrics['recall'], "hmean": metrics['hmean']})
 
     return metrics
 
 if __name__ == '__main__':
 
-
     parser = argparse.ArgumentParser(description='CRAFT Text Detection')
+    # parser.add_argument('--trained_model',
+    #                     default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v3/checkpoint_84000.pth',
+    #                     type=str, help='pretrained model')
     parser.add_argument('--trained_model',
-                        default='/data/workspace/woans0104/CRAFT-new-backtime92/exp/my_syn_new_v1/weights_52000.pth',
+                        default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/1216_exp/backnew-base-syn-1/CRAFT_clr_95000.pth',
                         type=str, help='pretrained model')
     parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
     parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
-    parser.add_argument('--link_threshold', default=0.4, type=float, help='link confidence threshold')
+    parser.add_argument('--link_threshold', default=0.2, type=float, help='link confidence threshold')
     parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
-    parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
+    parser.add_argument('--canvas_size', default=960, type=int, help='image size for inference')
     parser.add_argument('--mag_ratio', default=2, type=float, help='image magnification ratio')
     parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
     parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
-    parser.add_argument('--test_folder', default='/media/yanhai/disk1/ICDAR/icdar2013', type=str,
+    parser.add_argument('--test_folder', default='/data/ICDAR2013', type=str,
                         help='folder path to input images')
-    parser.add_argument('--results_dir', default='/media/yanhai/disk1/ICDAR/icdar2013', type=str,
+    parser.add_argument('--results_dir', default='/nas/home/gmuffiness/result/ocr/daintlab-CRAFT-Reimplementation/v3_icdar2013', type=str,
                         help='folder path to input images')
-
-
 
     args = parser.parse_args()
+    wandb.config.update(args)
     # load net
     net = CRAFT()     # initialize
-    #net = UNetWithResnet50Encoder()
+    wandb.watch(net)
     print('Loading weights from checkpoint (' + args.trained_model + ')')
     net_param = torch.load(args.trained_model)
 
@@ -164,4 +174,4 @@ if __name__ == '__main__':
     net.eval()
     evaluator = DetectionIoUEvaluator()
 
-    main(net, args, evaluator)
+    main(net, args, evaluator, config)

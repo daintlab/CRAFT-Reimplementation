@@ -13,3 +13,4 @@ watershed.py
 basenet/*
 weights/*
 __pycache__
+wandb/*
