@@ -194,44 +194,26 @@ class SynthTextDataLoader(data.Dataset):
     def pull_item(self, index):
         image, character_bboxes, words, confidence_mask, confidences, img_path = self.load_synthtext_image_gt(index)
 
-
-        #check negative coordinates
-        # for cb in character_bboxes :
-            # if (cb < 0).astype('float32').sum() > 0 :
-            #     import ipdb;
-            #     ipdb.set_trace()
-
-
-
         if len(confidences) == 0:
             confidences = 1.0
         else:
             confidences = np.array(confidences).mean()
 
-
         if len(character_bboxes) > 0:
             region_scores = self.gen.generate_region(image.shape, character_bboxes)
             affinities_scores, affinity_bboxes = self.gen.generate_affinity(image.shape, character_bboxes, words)
-
-
-        # if np.random.rand() > 0.99:
-        #     print(np.random.random())
-        #     self.viz = True
 
         if self.viz:
             saveImage(self.image[index][0], image.copy(), character_bboxes, affinity_bboxes, region_scores,
                            affinities_scores,
                            confidence_mask)
 
-
         random_transforms = [image, region_scores, affinities_scores, confidence_mask]
-
         random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
         random_transforms = random_horizontal_flip(random_transforms)
         random_transforms = random_rotate(random_transforms)
 
         image, region_image, affinity_image, confidence_mask = random_transforms
-
 
         #resize label
         region_image = self.resizeGt(region_image)
@@ -245,12 +227,10 @@ class SynthTextDataLoader(data.Dataset):
         image = Image.fromarray(image)
         image = image.convert('RGB')
         image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
-
+        image = transforms.GaussianBlur(kernel_size=(3, 7), sigma=(0.1, 2))(image)
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
         image = image.transpose(2, 0, 1)
-
-
 
         region_image = region_image.astype(np.float32) / 255
         affinity_image = affinity_image.astype(np.float32) / 255
@@ -592,6 +572,8 @@ class ICDAR2015(data.Dataset):
                            affinities_scores,
                            confidence_mask)
 
+        # Change confidence mask range (0~1 => 0~255)
+        confidence_mask *= 255
 
         random_transforms = [image, region_scores, affinities_scores, confidence_mask]
         # randomcrop = eastrandomcropdata((768,768))
@@ -621,7 +603,7 @@ class ICDAR2015(data.Dataset):
 
         region_image = region_image.astype(np.float32) / 255
         affinity_image = affinity_image.astype(np.float32) / 255
-        confidence_mask = confidence_mask.astype(np.float32)
+        confidence_mask = confidence_mask.astype(np.float32) / 255
 
         self.viz = False
 

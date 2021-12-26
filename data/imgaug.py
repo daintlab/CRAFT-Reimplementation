@@ -10,12 +10,9 @@ def random_scale(img, bboxes, min_size):
         bboxes *= scale
 
     h, w = img.shape[0:2]
-    #random_scale = np.array([1.0, 1.5, 2.0])
-    #random_scale = np.array([0.5, 1.0, 1.5, 2.0])
     random_scale = [1.0, 1.5, 2.0]
     # scale = np.random.choice(random_scale)
     scale = random.sample(random_scale, 1)[0]
-
 
     if min(h, w) * scale <= min_size:
         scale = (min_size + 10) * 1.0 / min(h, w)
@@ -55,17 +52,14 @@ def random_crop(imgs, img_size, character_bboxes):
                  # 음수일경우를 위해 바꿔줌
                 [[max(bboxes[:, :, 0].min(),0), max(bboxes[:, :, 1].min(),0)], [bboxes[:, :, 0].max(), bboxes[:, :, 1].max()]])
     word_bboxes = np.array(word_bboxes, np.int32)
+    sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
 
     if random.random() > 0.6 and len(word_bboxes) > 0:
-        sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
 
         left = max(sample_bboxes[1, 0] - img_size[0], 0)
         top = max(sample_bboxes[1, 1] - img_size[0],0)
 
         if min(sample_bboxes[0, 1], h - th) < top or min(sample_bboxes[0, 0], w - tw) < left:
-            if sample_bboxes[0,1] < 0 or sample_bboxes[0,0] < 0:
-                print(sample_bboxes)
-                import ipdb; ipdb.set_trace()
             i = random.randint(0, sample_bboxes[0, 1])
             j = random.randint(0, sample_bboxes[0, 0])
         else:
@@ -78,14 +72,13 @@ def random_crop(imgs, img_size, character_bboxes):
         ### train for IC15 dataset####
         i = random.randint(0, h - th)
         j = random.randint(0, w - tw)
+        crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] else th
+        crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] else tw
 
         # i, j = 0, 0
-        crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
+        # crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
 
     for idx in range(len(imgs)):
-        # crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] else th
-        # crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] else tw
-
         if len(imgs[idx].shape) == 3:
             imgs[idx] = imgs[idx][i:i + crop_h, j:j + crop_w, :]
         else:
@@ -93,9 +86,6 @@ def random_crop(imgs, img_size, character_bboxes):
 
         # if crop_w > tw or crop_h > th:
         imgs[idx] = padding_image(imgs[idx], tw)
-
-    if imgs[0].shape[0] != 768 or imgs[0].shape[1] != 768:
-        import ipdb;ipdb.set_trace()
 
     return imgs
 
