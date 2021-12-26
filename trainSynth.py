@@ -22,13 +22,13 @@ from metrics.eval_det_iou import DetectionIoUEvaluator
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
 
-parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v1', type=str,
+parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v3', type=str,
                     help='Path to save checkpoints')
 parser.add_argument('--synthData_dir', default='/data/SynthText', type=str,
                     help='Path to root directory of SynthText dataset')
-parser.add_argument('--batch_size', default=8, type = int,
+parser.add_argument('--batch_size', default=16, type = int,
                     help='batch size of training')
-parser.add_argument('--iter', default=50000, type = int,
+parser.add_argument('--iter', default=100000, type = int,
                     help='batch size of training')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     help='initial learning rate')
@@ -36,7 +36,7 @@ parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
                     help='Weight decay for SGD')
-parser.add_argument('--num_workers', default=0, type=int,
+parser.add_argument('--num_workers', default=8, type=int,
                     help='Number of workers used in dataloading')
 
 
@@ -48,14 +48,14 @@ def str2bool(v):
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
 parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
 parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
-parser.add_argument('--link_threshold', default=0.4, type=float, help='link confidence threshold')
+parser.add_argument('--link_threshold', default=0.2, type=float, help='link confidence threshold')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
-parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
-parser.add_argument('--mag_ratio', default=2.0, type=float, help='image magnification ratio')
+parser.add_argument('--canvas_size', default=960, type=int, help='image size for inference')
+parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
 #parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015', type=str, help='folder path to input images')
-parser.add_argument('--test_folder', default='/data/ICDAR2015', type=str, help='folder path to input images')
+parser.add_argument('--test_folder', default='/data/ICDAR2013', type=str, help='folder path to input images')
 
 
 
@@ -80,7 +80,7 @@ def adjust_learning_rate(optimizer, gamma, step, lr):
     # https://github.com/pytorch/examples/blob/master/imagenet/main.py
     """
     lr = lr * (gamma ** step)
-    print(lr)
+    print(f'adjusted lr : {lr}')
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return param_group['lr']
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     save_parser(args)
 
     synthData_dir = {"synthtext": args.synthData_dir}
-    synthDataLoader = SynthTextDataLoader(target_size=768, data_dir_list=synthData_dir, mode='train')
+    synthDataLoader = SynthTextDataLoader(target_size=768, data_dir_list=synthData_dir, mode='train', viz=True)
     tst_charbox, tst_image, tst_imgtxt = synthDataLoader.load_synthtext(mode='test')
     test_data_li = [tst_charbox, tst_image, tst_imgtxt]
 
@@ -119,8 +119,8 @@ if __name__ == "__main__":
     criterion = Maploss()
 
     # automatically resume from checkpoint if it exists
-    if os.path.exists(args.results_dir + '/checkpoint.pth'):
-        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint.pth'), map_location='cpu')
+    if os.path.exists(args.results_dir + '/checkpoint_91000.pth'):
+        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint_91000.pth'), map_location='cpu')
         new_state_dict = OrderedDict()
         for k, v in ckpt['craft'].items():
             # remove prefix : 'module'
@@ -140,7 +140,6 @@ if __name__ == "__main__":
         train_step = 0
 
     craft = craft.cuda()
-    # summary(net, (3, 3, 3))
     craft = torch.nn.DataParallel(craft).cuda()
     cudnn.benchmark = True
 
@@ -159,7 +158,8 @@ if __name__ == "__main__":
         for index, (image, region_image, affinity_image, confidence_mask, confidences) in enumerate(train_loader):
             start_time = time.time()
             craft.train()
-            if train_step>0 and train_step % 20000==0:
+
+            if train_step > 0 and train_step % 20000 == 0:
                 training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
                 update_lr_rate_step += 1
 
@@ -183,8 +183,7 @@ if __name__ == "__main__":
             batch_time += (end_time - start_time)
             losses.update(loss.item(), images.size(0))
 
-
-            if train_step > 0 and train_step%5==0:
+            if train_step > 0 and train_step % 5 == 0:
                 mean_loss = loss_value / 5
                 loss_value = 0
                 display_batch_time = time.time()
@@ -197,8 +196,6 @@ if __name__ == "__main__":
                       .format(time.strftime('%Y-%m-%d:%H:%M:%S',time.localtime(time.time())), train_step,
                               whole_training_step, training_lr, mean_loss, avg_batch_time))
 
-
-
             if train_step % 1000 == 0 and train_step != 0:
 
                 print('Saving state, index:', train_step)
@@ -208,7 +205,6 @@ if __name__ == "__main__":
                     'craft': craft.state_dict(),
                     'optimizer': optimizer.state_dict()
                 }, args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth')
-
 
                 evaluator = DetectionIoUEvaluator()
                 metrics = main(craft, args, evaluator)

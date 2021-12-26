@@ -47,11 +47,8 @@ def main(model, args, evaluator, data_li=''):
 
     if data_li != '':
         total_imgs_bboxes_gt, total_img_path = load_synthtext_gt(args.synthData_dir, data_li=data_li)
-
     else:
         test_folder = args.test_folder
-
-
 
         if test_folder.split('/')[-1].lower() == 'icdar2013':
             total_imgs_bboxes_gt, total_img_path = load_icdar2013_gt(dataFolder=test_folder,
@@ -59,7 +56,6 @@ def main(model, args, evaluator, data_li=''):
         else:
             total_imgs_bboxes_gt, total_img_path = load_icdar2015_gt(dataFolder=test_folder,
                                                                      isTraing=args.isTraingDataset)
-
 
     total_img_bboxes_pre = []
     for k, img_path in enumerate(tqdm(total_img_path)):

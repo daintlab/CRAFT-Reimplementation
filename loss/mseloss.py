@@ -8,7 +8,7 @@ class Maploss(nn.Module):
 
         super(Maploss,self).__init__()
 
-    def single_image_loss(self, pre_loss, loss_label):
+    def single_image_loss(self, pre_loss, loss_label, flag):
 
 
         batch_size = pre_loss.shape[0]
@@ -35,11 +35,18 @@ class Maploss(nn.Module):
 
 
         total_loss = positive_loss + negative_loss
+
+        content = f'[{flag}], positive_loss: {round(positive_loss.item(), 4)}, negative_loss: {round(negative_loss.item(), 4)} | positive_pixel_number: {int(positive_pixel_number.item())}, negative_pixel_number: {int(negative_pixel_number.item())}\n'
+        f = open('/nas/home/gmuffiness/result/ocr/daintlab-CRAFT-Reimplementation/v3_loss_log_decomposed.txt', 'a')
+        f.write(content)
+
         return total_loss
 
 
 
     def forward(self, region_scores_label, affinity_socres_label, region_scores_pre, affinity_scores_pre, mask):
+
+        # import ipdb;ipdb.set_trace()
         loss_fn = torch.nn.MSELoss(reduce=False, size_average=False)
 
         assert region_scores_label.size() == region_scores_pre.size() and affinity_socres_label.size() == affinity_scores_pre.size()
@@ -52,8 +59,8 @@ class Maploss(nn.Module):
         loss_region = torch.mul(loss1, mask)
         loss_affinity = torch.mul(loss2, mask)
 
-        char_loss = self.single_image_loss(loss_region, region_scores_label)
-        affi_loss = self.single_image_loss(loss_affinity, affinity_socres_label)
+        char_loss = self.single_image_loss(loss_region, region_scores_label, flag='Region')
+        affi_loss = self.single_image_loss(loss_affinity, affinity_socres_label, flag='Affinity')
         return char_loss + affi_loss
 
 #
