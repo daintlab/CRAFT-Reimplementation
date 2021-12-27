@@ -25,7 +25,7 @@ from utils import craft_utils
 
 
 def saveInput(imagename, image, region_scores, affinity_scores, confidence_mask):
-    boxes, polys = craft_utils.getDetBoxes(region_scores / 255, affinity_scores / 255, 0.7, 0.4, 0.4, False)
+    boxes, polys = craft_utils.getDetBoxes(region_scores / 255, affinity_scores / 255, 0.7, 0.55, 0.23, False)
     boxes = np.array(boxes, np.int32) * 2
     if len(boxes) > 0:
         np.clip(boxes[:, :, 0], 0, image.shape[1])
@@ -210,8 +210,8 @@ class SynthTextDataLoader(data.Dataset):
 
         random_transforms = [image, region_scores, affinities_scores, confidence_mask]
         random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-        random_transforms = random_horizontal_flip(random_transforms)
-        random_transforms = random_rotate(random_transforms)
+        # random_transforms = random_horizontal_flip(random_transforms)
+        # random_transforms = random_rotate(random_transforms)
 
         image, region_image, affinity_image, confidence_mask = random_transforms
 
@@ -226,8 +226,8 @@ class SynthTextDataLoader(data.Dataset):
 
         image = Image.fromarray(image)
         image = image.convert('RGB')
-        image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
-        image = transforms.GaussianBlur(kernel_size=(3, 7), sigma=(0.1, 2))(image)
+        # image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
+        # image = transforms.GaussianBlur(kernel_size=(3, 7), sigma=(0.1, 2))(image)
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
         image = image.transpose(2, 0, 1)
@@ -562,9 +562,9 @@ class ICDAR2015(data.Dataset):
 
         rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
 
-        if int(self.get_imagename(index).split('.')[0].split('_')[1]) in rnd_list and \
-                self.get_imagename(index).split('_')[0] == 'img':
-            self.viz = True
+        # if int(self.get_imagename(index).split('.')[0].split('_')[1]) in rnd_list and \
+        #         self.get_imagename(index).split('_')[0] == 'img':
+        #     self.viz = True
 
 
         if self.viz:
@@ -576,9 +576,6 @@ class ICDAR2015(data.Dataset):
         confidence_mask *= 255
 
         random_transforms = [image, region_scores, affinities_scores, confidence_mask]
-        # randomcrop = eastrandomcropdata((768,768))
-        # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
-
         random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
         random_transforms = random_horizontal_flip(random_transforms)
         random_transforms = random_rotate(random_transforms)

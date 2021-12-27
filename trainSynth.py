@@ -6,6 +6,7 @@ import cv2
 import time
 import argparse
 import numpy as np
+import wandb
 
 from data.dataset import SynthTextDataLoader
 
@@ -18,11 +19,12 @@ from utils import config
 from eval import main
 from metrics.eval_det_iou import DetectionIoUEvaluator
 
+wandb.init(project='ocr_craft')
 
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
 
-parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v3', type=str,
+parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v5', type=str,
                     help='Path to save checkpoints')
 parser.add_argument('--synthData_dir', default='/data/SynthText', type=str,
                     help='Path to root directory of SynthText dataset')
@@ -47,20 +49,18 @@ def str2bool(v):
 
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
 parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
-parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
-parser.add_argument('--link_threshold', default=0.2, type=float, help='link confidence threshold')
+parser.add_argument('--low_text', default=0.55, type=float, help='text low-bound score')
+parser.add_argument('--link_threshold', default=0.23, type=float, help='link confidence threshold')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
 parser.add_argument('--canvas_size', default=960, type=int, help='image size for inference')
 parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
 #parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015', type=str, help='folder path to input images')
-parser.add_argument('--test_folder', default='/data/ICDAR2013', type=str, help='folder path to input images')
-
-
+parser.add_argument('--test_folder', default='/nas/datahub/ICDAR2013', type=str, help='folder path to input images')
 
 args = parser.parse_args()
-
+wandb.config.update(args)
 
 def copyStateDict(state_dict):
     if list(state_dict.keys())[0].startswith("module"):
@@ -96,11 +96,9 @@ if __name__ == "__main__":
     save_parser(args)
 
     synthData_dir = {"synthtext": args.synthData_dir}
-    synthDataLoader = SynthTextDataLoader(target_size=768, data_dir_list=synthData_dir, mode='train', viz=True)
+    synthDataLoader = SynthTextDataLoader(target_size=768, data_dir_list=synthData_dir, mode='train')
     tst_charbox, tst_image, tst_imgtxt = synthDataLoader.load_synthtext(mode='test')
     test_data_li = [tst_charbox, tst_image, tst_imgtxt]
-
-
 
     train_loader = torch.utils.data.DataLoader(synthDataLoader,
                                                batch_size=args.batch_size,
@@ -115,12 +113,13 @@ if __name__ == "__main__":
 
 
     craft = CRAFT(pretrained=True)
+    wandb.watch(craft)
     optimizer = optim.Adam(craft.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     criterion = Maploss()
 
     # automatically resume from checkpoint if it exists
-    if os.path.exists(args.results_dir + '/checkpoint_94000.pth'):
-        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint_94000.pth'), map_location='cpu')
+    if os.path.exists(args.results_dir + '/checkpoint_21000.pth'):
+        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint_26000.pth'), map_location='cpu')
         new_state_dict = OrderedDict()
         for k, v in ckpt['craft'].items():
             # remove prefix : 'module'
@@ -195,7 +194,7 @@ if __name__ == "__main__":
                 print("{}, training_step: {}|{}, learning rate: {:.8f}, training_loss: {:.5f}, avg_batch_time: {:.5f}"
                       .format(time.strftime('%Y-%m-%d:%H:%M:%S',time.localtime(time.time())), train_step,
                               whole_training_step, training_lr, mean_loss, avg_batch_time))
-
+                wandb.log({'train_step':train_step, 'mean_loss':mean_loss})
             if train_step % 1000 == 0 and train_step != 0:
 
                 print('Saving state, index:', train_step)
@@ -209,7 +208,6 @@ if __name__ == "__main__":
                 evaluator = DetectionIoUEvaluator()
                 metrics = main(craft, args, evaluator)
                 val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])
-
 
                 losses.reset()
             train_step += 1

@@ -52,31 +52,45 @@ def random_crop(imgs, img_size, character_bboxes):
                  # 음수일경우를 위해 바꿔줌
                 [[max(bboxes[:, :, 0].min(),0), max(bboxes[:, :, 1].min(),0)], [bboxes[:, :, 0].max(), bboxes[:, :, 1].max()]])
     word_bboxes = np.array(word_bboxes, np.int32)
-    sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
 
     if random.random() > 0.6 and len(word_bboxes) > 0:
+        sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes)-1)]
 
         left = max(sample_bboxes[1, 0] - img_size[0], 0)
         top = max(sample_bboxes[1, 1] - img_size[0],0)
 
         if min(sample_bboxes[0, 1], h - th) < top or min(sample_bboxes[0, 0], w - tw) < left:
+            # print('flag1')
             i = random.randint(0, sample_bboxes[0, 1])
             j = random.randint(0, sample_bboxes[0, 0])
         else:
+            # print('flag2')
             i = random.randint(top, min(sample_bboxes[0, 1], h - th))
             j = random.randint(left, min(sample_bboxes[0, 0], w - tw))
 
         crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] - i else th
         crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] - j else tw
-    else:
+    elif len(word_bboxes) > 0:
+        # print('flag3')
+        sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
         ### train for IC15 dataset####
-        i = random.randint(0, h - th)
-        j = random.randint(0, w - tw)
-        crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] else th
-        crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] else tw
+        i = random.randint(0, sample_bboxes[0,1])
+        j = random.randint(0, sample_bboxes[0,0])
 
-        # i, j = 0, 0
-        # crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
+        # temp_img = imgs[0].copy()
+        # cv2.rectangle(temp_img, (0,0), (sample_bboxes[0,0], sample_bboxes[0,1]), (0,0,0), -1)
+        # cv2.rectangle(temp_img, (j,i), (j+crop_w, i+crop_h), (0, 255, 0), 10)
+        # from torchvision.transforms import transforms
+        # tf = transforms.ToPILImage()
+        # img_t = tf(temp_img)
+        # img_t.save('/nas/home/gmuffiness/result/ocr/daintlab-CRAFT-Reimplementation/figure/temp9.jpg')
+
+        # crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] else th
+        # crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] else tw
+    else:
+        # print('flag4')
+        i, j = 0, 0
+        crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
 
     for idx in range(len(imgs)):
         if len(imgs[idx].shape) == 3:
@@ -86,7 +100,11 @@ def random_crop(imgs, img_size, character_bboxes):
 
         # if crop_w > tw or crop_h > th:
         imgs[idx] = padding_image(imgs[idx], tw)
-
+    # from torchvision.transforms import transforms
+    # tf = transforms.ToPILImage()
+    # img_t = tf(imgs[0])
+    # img_t.save('/nas/home/gmuffiness/result/ocr/daintlab-CRAFT-Reimplementation/figure/temp6.jpg')
+    # import ipdb;ipdb.set_trace()
     return imgs
 
 

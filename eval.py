@@ -26,13 +26,13 @@ from data import imgproc
 from collections import OrderedDict
 from metrics.eval_det_iou import DetectionIoUEvaluator
 
-config_defaults = {
-    'text_threshold': 0.7,
-    'low_text': 0.4,
-    'link_threshold': 0.2
-}
-wandb.init(project='ocr_craft', config=config_defaults)
-config = wandb.config
+# config_defaults = {
+#     'text_threshold': 0.7,
+#     'low_text': 0.55,
+#     'link_threshold': 0.23
+# }
+# wandb.init(project='ocr_craft')
+# config = wandb.config
 
 
 def str2bool(v):
@@ -51,7 +51,7 @@ def copyStateDict(state_dict):
 
 
 
-def main(model, args, evaluator, wandb_config, data_li=''):
+def main(model, args, evaluator, data_li=''):
     model.eval()
 
     if data_li != '':
@@ -72,9 +72,9 @@ def main(model, args, evaluator, wandb_config, data_li=''):
         single_img_bbox = []
         bboxes, polys, score_text = test_net(model,
                                              image,
-                                             config.text_threshold,
-                                             config.link_threshold,
-                                             config.low_text,
+                                             args.text_threshold,
+                                             args.link_threshold,
+                                             args.low_text,
                                              args.cuda,
                                              args.poly,
                                              args.canvas_size,
@@ -86,7 +86,7 @@ def main(model, args, evaluator, wandb_config, data_li=''):
 
         viz = True
         #if k in rnd_list:
-        #    viz = True
+           # viz = True
 
         if viz == True:
 
@@ -133,12 +133,12 @@ def main(model, args, evaluator, wandb_config, data_li=''):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='CRAFT Text Detection')
-    # parser.add_argument('--trained_model',
-    #                     default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v3/checkpoint_84000.pth',
-    #                     type=str, help='pretrained model')
     parser.add_argument('--trained_model',
-                        default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/1216_exp/backnew-base-syn-1/CRAFT_clr_95000.pth',
+                        default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v3/checkpoint_84000.pth',
                         type=str, help='pretrained model')
+    # parser.add_argument('--trained_model',
+    #                     default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/1216_exp/backnew-base-syn-1/CRAFT_clr_95000.pth',
+    #                     type=str, help='pretrained model')
     parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
     parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
     parser.add_argument('--link_threshold', default=0.2, type=float, help='link confidence threshold')
@@ -147,16 +147,16 @@ if __name__ == '__main__':
     parser.add_argument('--mag_ratio', default=2, type=float, help='image magnification ratio')
     parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
     parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
-    parser.add_argument('--test_folder', default='/data/ICDAR2013', type=str,
+    parser.add_argument('--test_folder', default='/nas/datahub/ICDAR2013', type=str,
                         help='folder path to input images')
     parser.add_argument('--results_dir', default='/nas/home/gmuffiness/result/ocr/daintlab-CRAFT-Reimplementation/v3_icdar2013', type=str,
                         help='folder path to input images')
 
     args = parser.parse_args()
-    wandb.config.update(args)
+    # wandb.config.update(args)
     # load net
     net = CRAFT()     # initialize
-    wandb.watch(net)
+    # wandb.watch(net)
     print('Loading weights from checkpoint (' + args.trained_model + ')')
     net_param = torch.load(args.trained_model)
 
@@ -174,4 +174,4 @@ if __name__ == '__main__':
     net.eval()
     evaluator = DetectionIoUEvaluator()
 
-    main(net, args, evaluator, config)
+    main(net, args, evaluator)
