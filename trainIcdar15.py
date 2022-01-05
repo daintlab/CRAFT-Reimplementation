@@ -38,6 +38,8 @@ parser.add_argument('--st_iter', default=0, type = int,
                     help='batch size of training')
 parser.add_argument('--end_iter', default=50000, type = int,
                     help='batch size of training')
+parser.add_argument('--icdar_batch', default=15, type = int,
+                    help='batch size of icdar training')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     help='initial learning rate')
 parser.add_argument('--lr_decay', default=10000, type=int, help='learning rate decay')
@@ -109,7 +111,7 @@ if __name__ == "__main__":
 
     train_syn_loder = torch.utils.data.DataLoader(
         synthDataLoader,
-        batch_size=2,
+        batch_size=args.icdar_batch//5,
         shuffle=True,
         num_workers=args.num_workers,
         drop_last=True,
@@ -134,7 +136,7 @@ if __name__ == "__main__":
     realdata = ICDAR2015(craft, args.icdar2015_dir, target_size=768, viz=False)
     real_data_loader = torch.utils.data.DataLoader(
         realdata,
-        batch_size=10,
+        batch_size=args.icdar_batch,
         shuffle=True,
         num_workers=args.num_workers,
         drop_last=True,
@@ -231,7 +233,7 @@ if __name__ == "__main__":
 
 
 
-            if train_step % 100 == 0 and train_step != 0:
+            if train_step % 500 == 0 and train_step != 0:
 
                 print('Saving state, index:', train_step)
 
@@ -246,7 +248,8 @@ if __name__ == "__main__":
 
                 try:
                     #test for ic2015
-                    metrics = main(craft, args, evaluator)
+                    #metrics = main(craft, args, evaluator)
+                    metrics = main(args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth', args, evaluator)
                     val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])
                 except:
                     val_logger.write([train_step, losses.avg, str(0)])
@@ -266,5 +269,6 @@ if __name__ == "__main__":
     }, args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth')
 
     evaluator = DetectionIoUEvaluator()
-    metrics = main(craft, args, evaluator)
+    # metrics = main(craft, args, evaluator)
+    metrics = main( args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth', args, evaluator)
     val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])

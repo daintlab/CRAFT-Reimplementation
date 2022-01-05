@@ -149,9 +149,10 @@ class SynthTextDataLoader(data.Dataset):
         if mode == 'train':
             return trn_charbox, trn_image, trn_imgtxt
 
-        else:
+        elif mode == 'test':
             return tst_wordbox, tst_image, tst_imgtxt
-
+        else:
+            return charbox, image, imgtxt
 
     # def load_synthtext(self):
     #
@@ -212,7 +213,7 @@ class SynthTextDataLoader(data.Dataset):
 
 
         if len(character_bboxes) > 0:
-            region_scores = self.gen.generate_region(image.shape, character_bboxes)
+            region_scores = self.gen.generate_region(image.shape, character_bboxes, img_path)
             affinities_scores, affinity_bboxes = self.gen.generate_affinity(image.shape, character_bboxes, words)
 
 

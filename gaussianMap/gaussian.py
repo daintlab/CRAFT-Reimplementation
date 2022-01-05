@@ -174,13 +174,14 @@ class GaussianTransformer(object):
 
         return self.add_character(image, affinity.copy(), singal='affinity'), np.expand_dims(affinity, axis=0)
 
-    def generate_region(self, image_size, bboxes):
+    def generate_region(self, image_size, bboxes, signal='none'):
         height, width, channel = image_size
         target = np.zeros([height, width], dtype=np.float32)
         for i in range(len(bboxes)):
             character_bbox = np.array(bboxes[i])
             for j in range(bboxes[i].shape[0]):
-                target = self.add_character(target, character_bbox[j], singal='region')
+                #target = self.add_character(target, character_bbox[j], singal='region')
+                target = self.add_character(target, character_bbox[j], singal=signal)
 
         return target
 
