@@ -191,7 +191,7 @@ def main(model_path, args, evaluator, data_li=''):
                                              args.canvas_size,
                                              args.mag_ratio)
 
-        # # # # ---------------------------------------------------------------------------------------------------------------#
+        # # # # -------------------------------------------------------------------------------------------------------#
         #
         # if test_folder.split('/')[-1].lower() == 'icdar2013':
         #     rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
@@ -238,7 +238,7 @@ def main(model_path, args, evaluator, data_li=''):
             #ori_image_path = outpath + "/res_" + filename + '.jpg'
             #cv2.imwrite(ori_image_path,image)
 
-        # # # ---------------------------------------------------------------------------------------------------------------#
+        # # # --------------------------------------------------------------------------------------------------------#
 
         for box in bboxes:
             box_info = {"points": None, "text": None, "ignore": None}
@@ -294,7 +294,7 @@ def main(model_path, args, evaluator, data_li=''):
 #                                              args.canvas_size,
 #                                              args.mag_ratio)
 #
-#         # # # ---------------------------------------------------------------------------------------------------------------#
+#         # # # -------------------------------------------------------------------------------------------------------#
 #
 #         if test_folder.split('/')[-1].lower() == 'icdar2013':
 #             rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
@@ -341,7 +341,7 @@ def main(model_path, args, evaluator, data_li=''):
 #             #ori_image_path = outpath + "/res_" + filename + '.jpg'
 #             #cv2.imwrite(ori_image_path,image)
 #
-#         # # # ---------------------------------------------------------------------------------------------------------------#
+#         # # # ----------------------------------------------------------------------------------------------------#
 #
 #         for box in bboxes:
 #             box_info = {"points": None, "text": None, "ignore": None}
@@ -378,7 +378,7 @@ if __name__ == '__main__':
     parser.add_argument('--test_folder', default='/media/yanhai/disk1/ICDAR/icdar2013', type=str,
                         help='folder path to input images')
     parser.add_argument('--results_dir', default='/media/yanhai/disk1/ICDAR/icdar2013', type=str,
-                        help='folder path to input images')
+                        help='Path to save checkpoints')
 
 
 

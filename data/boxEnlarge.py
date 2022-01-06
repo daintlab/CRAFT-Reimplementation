@@ -12,6 +12,7 @@ def pointDistance(Apoint, Bpoint):
     return math.sqrt((Bpoint[1] - Apoint[1])**2 + (Bpoint[0] - Apoint[0])**2)
 
 def lineBiasAndK(Apoint, Bpoint):
+
     K = pointAngle(Apoint, Bpoint)
     B = Apoint[1] - K*Apoint[0]
     return K, B
@@ -25,7 +26,7 @@ def sidePoint(Apoint, Bpoint, h, w, placehold):
     angle = abs(math.atan(pointAngle(Apoint, Bpoint)))
     distance = pointDistance(Apoint, Bpoint)
 
-    halfIncreaseDistance = 0.75 * distance
+    halfIncreaseDistance = 0.5 * distance
 
     XaxisIncreaseDistance = abs(math.cos(angle) * halfIncreaseDistance)
     YaxisIncreaseDistance = abs(math.sin(angle) * halfIncreaseDistance)

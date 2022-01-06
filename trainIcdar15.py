@@ -35,9 +35,9 @@ parser.add_argument("--ckpt_path", default='/nas/home/jihyokim/jm/CRAFT-new-back
                                            'CRAFT_clr_100000.pth', type=str,
                     help="path to pretrained model")
 parser.add_argument('--st_iter', default=0, type = int,
-                    help='batch size of training')
+                    help='start iter')
 parser.add_argument('--end_iter', default=50000, type = int,
-                    help='batch size of training')
+                    help='end iter')
 parser.add_argument('--icdar_batch', default=15, type = int,
                     help='batch size of icdar training')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
@@ -46,15 +46,12 @@ parser.add_argument('--lr_decay', default=10000, type=int, help='learning rate d
 parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
-                    help='Weight decay for SGD')
+                    help='Weight decay')
 parser.add_argument('--num_workers', default=0, type=int,
-                    help='Number of workers used in dataloading')
-parser.add_argument('--sigma', default=0, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 
 #for test
-
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
 parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
 parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')

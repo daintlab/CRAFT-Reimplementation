@@ -31,10 +31,11 @@ parser.add_argument("--ckpt_path", default='', type=str,
                     help="path to pretrained model")
 parser.add_argument('--batch_size', default=16, type = int,
                     help='batch size of training')
-parser.add_argument('--iter', default=10, type = int,
-                    help='batch size of training')
 parser.add_argument('--st_iter', default=0, type = int,
-                    help='batch size of training')
+                    help='start iter')
+parser.add_argument('--end_iter', default=10, type = int,
+                    help='end iter')
+
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     help='initial learning rate')
 parser.add_argument('--lr-decay', default=10000, type=int, help='learning rate decay')
@@ -45,7 +46,7 @@ parser.add_argument('--weight_decay', default=5e-4, type=float,
 parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
-parser.add_argument('--amp', default=False, type=str2bool, help='augmentation')
+parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
 
 #for test
 
@@ -100,7 +101,7 @@ if __name__ == "__main__":
 
     save_parser(args)
     config.AUG = args.aug
-
+    config.ITER = args.st_iter
 
     synthData_dir = {"synthtext": args.synthData_dir}
     synthDataLoader = SynthTextDataLoader(target_size=768, data_dir_list=synthData_dir, mode='train')
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     trn_logger, val_logger = make_logger(path=args.results_dir)
 
     train_step = args.st_iter
-    whole_training_step = args.iter
+    whole_training_step = args.end_iter
     update_lr_rate_step = 0
     training_lr = args.lr
     loss_value = 0

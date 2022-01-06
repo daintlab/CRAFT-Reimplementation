@@ -145,7 +145,8 @@ class GaussianTransformer(object):
 
 
         except Exception as e:
-            # print('tansformed shape:{}\n image top_left shape:{}\n top transformed shape:{}\n width and hright:{}\n ori box:{}\n top left:{}\n point:{}\n min width height:{}\n bbox:{}\n'
+            # print('tansformed shape:{}\n image top_left shape:{}\n top transformed shape:{}\n width and hright:{}
+            # \n ori box:{}\n top left:{}\n point:{}\n min width height:{}\n bbox:{}\n'
             #       .format(transformed.shape, image[top_left[1]:top_left[1],
             # top_left[0]:top_left[0]].shape, image[top_left[1]:top_left[1] + transformed.shape[0],
             # top_left[0]:top_left[0] + transformed.shape[1]].shape, (width, height), ori_box, top_left,point,

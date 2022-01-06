@@ -373,7 +373,8 @@ class ICDAR2015(data.Dataset):
 
     def inference_pursedo_bboxes(self, net, image, word_bbox, word, viz=False, imagename=''):
 
-       # print('inference_pursedo_bboxes model last parameters :{}'.format(net.module.conv_cls[-1].weight.reshape(2, -1)))
+       # print('inference_pursedo_bboxes model last parameters
+       # :{}'.format(net.module.conv_cls[-1].weight.reshape(2, -1)))
         if net.training:
             net.eval()
         with torch.no_grad():
@@ -501,10 +502,15 @@ class ICDAR2015(data.Dataset):
                 region_scores_color = cv2.applyColorMap(np.uint8(region_scores), cv2.COLORMAP_JET)
                 region_scores_color = cv2.resize(region_scores_color, (input.shape[1], input.shape[0]))
 
+                #gaussian
+
+                target = self.gen.generate_region(region_scores_color.shape, [_tmp_bboxes])
+                target_color = cv2.applyColorMap(target.astype('uint8'), cv2.COLORMAP_JET)
+
 
                 # ori img , region score, watershed, box img
                 viz_image = np.hstack([input_copy[:, :, ::-1], region_scores_color,color_markers,
-                                       input_copy1[:, :, ::-1],input_copy2[:, :, ::-1]])
+                                       input_copy1[:, :, ::-1],input_copy2[:, :, ::-1], target_color])
 
 
                 save_path = os.path.join(config.RESULT_DIR, str(config.ITER//100))
@@ -674,6 +680,10 @@ class ICDAR2015(data.Dataset):
 
 
         random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
+
+
+
+
         if config.AUG == True:
             random_transforms = random_horizontal_flip(random_transforms)
             random_transforms = random_rotate(random_transforms)
@@ -686,8 +696,11 @@ class ICDAR2015(data.Dataset):
 
 
 
+
+
         if self.viz:
-            saveInput(self.get_imagename(index), image.copy(), region_image.copy(), affinity_image.copy(), confidence_mask.copy())
+            saveInput(self.get_imagename(index), image.copy(), region_image.copy(),
+                      affinity_image.copy(), confidence_mask.copy())
 
         image = Image.fromarray(image)
 
@@ -726,7 +739,8 @@ if __name__ == "__main__":
 
 
     for index in range(10000):
-        image, character_bboxes, words, confidence_mask, confidences, img_path = craft_data.load_synthtext_image_gt(index)
+        image, character_bboxes, words, confidence_mask, confidences, img_path = \
+            craft_data.load_synthtext_image_gt(index)
         # # 测试
         # image = cv2.imread("/media/yanhai/disk21/SynthTextData/SynthText/8/ballet_106_0.jpg")
         # character_bboxes = np.array([[[[423.16126397,  22.26958901],

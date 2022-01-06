@@ -35,9 +35,9 @@ parser.add_argument("--ckpt_path", default='/nas/home/jihyokim/jm/CRAFT-new-back
                                            'CRAFT_clr_100000.pth', type=str,
                     help="path to pretrained model")
 parser.add_argument('--st_iter', default=0, type = int,
-                    help='batch size of training')
+                    help='start iter')
 parser.add_argument('--end_iter', default=50000, type = int,
-                    help='batch size of training')
+                    help='end iter')
 
 parser.add_argument('--icdar_batch', default=15, type = int,
                     help='batch size of icdar training')
@@ -48,13 +48,11 @@ parser.add_argument('--lr_decay', default=10000, type=int, help='learning rate d
 parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
-                    help='Weight decay for SGD')
+                    help='Weight decay')
 parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
-parser.add_argument('--sigma', default=0, type=int,
-                    help='Number of workers used in dataloading')
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
-parser.add_argument('--amp', default=False, type=str2bool, help='augmentation')
+parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
 #for test
 
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
@@ -182,10 +180,11 @@ if __name__ == "__main__":
     batch_time = 0
     losses = AverageMeter()
 
-    from tqdm import tqdm
+
     while train_step < whole_training_step:
 
-        for index, (real_images, real_region_label, real_affi_label, real_confidence_mask, real_confidences) in enumerate(tqdm(real_data_loader)):
+        for index, (real_images, real_region_label, real_affi_label, real_confidence_mask, real_confidences) \
+                in enumerate(real_data_loader):
             start_time = time.time()
             craft.train()
             if train_step>0 and train_step % args.lr_decay==0:
