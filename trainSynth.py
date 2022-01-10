@@ -24,7 +24,7 @@ wandb.init(project='ocr_craft')
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
 
-parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v5', type=str,
+parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_debug', type=str,
                     help='Path to save checkpoints')
 parser.add_argument('--synthData_dir', default='/data/SynthText', type=str,
                     help='Path to root directory of SynthText dataset')
@@ -38,7 +38,7 @@ parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
 parser.add_argument('--weight_decay', default=5e-4, type=float,
                     help='Weight decay for SGD')
-parser.add_argument('--num_workers', default=8, type=int,
+parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 
 
@@ -57,7 +57,7 @@ parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnific
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
 #parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015', type=str, help='folder path to input images')
-parser.add_argument('--test_folder', default='/nas/datahub/ICDAR2013', type=str, help='folder path to input images')
+parser.add_argument('--test_folder', default='/data/ICDAR2013', type=str, help='folder path to input images')
 
 args = parser.parse_args()
 wandb.config.update(args)
@@ -118,8 +118,8 @@ if __name__ == "__main__":
     criterion = Maploss()
 
     # automatically resume from checkpoint if it exists
-    if os.path.exists(args.results_dir + '/checkpoint_21000.pth'):
-        ckpt = torch.load(os.path.join(args.results_dir, 'checkpoint_26000.pth'), map_location='cpu')
+    if os.path.exists(args.results_dir + '/CRAFT_clr_66000.pth'):
+        ckpt = torch.load(os.path.join(args.results_dir, 'CRAFT_clr_66000.pth'), map_location='cpu')
         new_state_dict = OrderedDict()
         for k, v in ckpt['craft'].items():
             # remove prefix : 'module'
@@ -195,7 +195,7 @@ if __name__ == "__main__":
                       .format(time.strftime('%Y-%m-%d:%H:%M:%S',time.localtime(time.time())), train_step,
                               whole_training_step, training_lr, mean_loss, avg_batch_time))
                 wandb.log({'train_step':train_step, 'mean_loss':mean_loss})
-            if train_step % 1000 == 0 and train_step != 0:
+            if train_step % 500 == 0 and train_step != 0:
 
                 print('Saving state, index:', train_step)
 

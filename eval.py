@@ -26,14 +26,8 @@ from data import imgproc
 from collections import OrderedDict
 from metrics.eval_det_iou import DetectionIoUEvaluator
 
-# config_defaults = {
-#     'text_threshold': 0.7,
-#     'low_text': 0.55,
-#     'link_threshold': 0.23
-# }
-# wandb.init(project='ocr_craft')
-# config = wandb.config
-
+wandb.init(project='ocr_craft')
+config = wandb.config
 
 def str2bool(v):
     return v.lower() in ("yes", "y", "true", "t", "1")
@@ -48,8 +42,6 @@ def copyStateDict(state_dict):
         name = ".".join(k.split(".")[start_idx:])
         new_state_dict[name] = v
     return new_state_dict
-
-
 
 def main(model, args, evaluator, data_li=''):
     model.eval()
@@ -84,7 +76,7 @@ def main(model, args, evaluator, data_li=''):
 
         #rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395]
 
-        viz = True
+        viz = False
         #if k in rnd_list:
            # viz = True
 
@@ -133,30 +125,30 @@ def main(model, args, evaluator, data_li=''):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='CRAFT Text Detection')
-    parser.add_argument('--trained_model',
-                        default='/nas/home/gmuffiness/model/ocr/daintlab-CRAFT-Reimplementation_v3/checkpoint_84000.pth',
-                        type=str, help='pretrained model')
     # parser.add_argument('--trained_model',
-    #                     default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/1216_exp/backnew-base-syn-1/CRAFT_clr_95000.pth',
+    #                     default='/nas/home/gmuffiness/model/ocr/craft/stage2/daintlab-CRAFT-Reimplementation_v0/CRAFT_clr_50000.pth',
     #                     type=str, help='pretrained model')
+    parser.add_argument('--trained_model',
+                        default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/1209_exp/1209_my_syn_2015_new_ori_exp2-1/CRAFT_clr_25000.pth',
+                        type=str, help='pretrained model')
     parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
-    parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
-    parser.add_argument('--link_threshold', default=0.2, type=float, help='link confidence threshold')
+    parser.add_argument('--low_text', default=0.55, type=float, help='text low-bound score')
+    parser.add_argument('--link_threshold', default=0.23, type=float, help='link confidence threshold')
     parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
-    parser.add_argument('--canvas_size', default=960, type=int, help='image size for inference')
+    parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
     parser.add_argument('--mag_ratio', default=2, type=float, help='image magnification ratio')
     parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
     parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
-    parser.add_argument('--test_folder', default='/nas/datahub/ICDAR2013', type=str,
+    parser.add_argument('--test_folder', default='/data/ICDAR2015', type=str,
                         help='folder path to input images')
-    parser.add_argument('--results_dir', default='/nas/home/gmuffiness/result/ocr/daintlab-CRAFT-Reimplementation/v3_icdar2013', type=str,
+    parser.add_argument('--results_dir', default='/nas/home/gmuffiness/result/ocr/daintlab-CRAFT-Reimplementation/s2_v0_icdar2015', type=str,
                         help='folder path to input images')
 
     args = parser.parse_args()
-    # wandb.config.update(args)
+    wandb.config.update(args)
     # load net
     net = CRAFT()     # initialize
-    # wandb.watch(net)
+    wandb.watch(net)
     print('Loading weights from checkpoint (' + args.trained_model + ')')
     net_param = torch.load(args.trained_model)
 

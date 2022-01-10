@@ -459,6 +459,9 @@ class ICDAR2015(data.Dataset):
 
             bboxes /= scale
 
+            # 위에서의 bboxes는, polygon 형태의 좌표이므로, 논문과 동일하게 직교하는 형태로 변경
+
+
             try: # problem
                 for k in range(len(bboxes)):
                     ones = np.ones((4, 1))

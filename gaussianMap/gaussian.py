@@ -112,17 +112,12 @@ class GaussianTransformer(object):
         if singal == "affinity":
             bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = bbxo_copy[0][0], bbxo_copy[1][0], bbxo_copy[2][0], bbxo_copy[3][0]
 
-        # bbox = np.array([[45, 135], [135, 135], [135, 295], [45, 295]], dtype=np.float32)
-
         if np.any(bbox < 0) or np.any(bbox[:, 0] > image.shape[1]) or np.any(bbox[:, 1] > image.shape[0]):
             return image
-        ori_box = bbox
         top_left = np.array([np.min(bbox[:, 0]), np.min(bbox[:, 1])]).astype(np.int32)
-        point = top_left
         bbox -= top_left[None, :]
         transformed, width, height = self.four_point_transform(bbox.astype(np.float32))
-        # if width * height < 10:
-        #     return image
+
         try:
             score_map = image[top_left[1]:top_left[1] + transformed.shape[0],
                         top_left[0]:top_left[0] + transformed.shape[1]]
@@ -140,7 +135,7 @@ class GaussianTransformer(object):
             #       np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32),
             #       ori_box-np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32)))
 
-            #import ipdb;ipdb.set_trace()
+            import ipdb;ipdb.set_trace()
             print('second filter {} {} {}'.format(width,height,singal))
         return image
 

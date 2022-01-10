@@ -24,15 +24,15 @@ parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
 parser.add_argument("--ckpt_path", default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/1216_exp/backnew-base-syn-1/CRAFT_clr_95000.pth', type=str,
                     help="path to pretrained model")
-parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/craft/stage2/daintlab-CRAFT-Reimplementation_v1', type=str,
+parser.add_argument('--results_dir', default='/nas/home/gmuffiness/model/ocr/craft/stage2/debug', type=str,
                     help='Path to save checkpoints')
-parser.add_argument('--synthData_dir', default='/nas/datahub/SynthText', type=str,
+parser.add_argument('--synthData_dir', default='/data/SynthText', type=str,
                     help='Path to root directory of SynthText dataset')
-parser.add_argument('--icdar2015_dir', default='/nas/datahub/ICDAR2015', type=str,
+parser.add_argument('--icdar2015_dir', default='/data/ICDAR2015', type=str,
                     help='Path to root directory of icdar2015 dataset')
-parser.add_argument('--syn_batch_size', default=4, type = int,
+parser.add_argument('--syn_batch_size', default=1, type = int,
                     help='batch size of training')
-parser.add_argument('--ic_batch_size', default=20, type = int,
+parser.add_argument('--ic_batch_size', default=1, type = int,
                     help='batch size of training')
 parser.add_argument('--st_iter', default=0, type = int,
                     help='start iteration number')
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     #print('init model last parameters :{}'.format(craft.module.conv_cls[-1].weight.reshape(2, -1)))
 
-    realdata = ICDAR2015(craft, args.icdar2015_dir, target_size=768, viz=False)
+    realdata = ICDAR2015(craft, args.icdar2015_dir, target_size=768, viz=True)
     real_data_loader = torch.utils.data.DataLoader(
         realdata,
         batch_size=args.ic_batch_size,

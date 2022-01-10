@@ -61,8 +61,8 @@ def random_crop(imgs, img_size, character_bboxes):
 
         if min(sample_bboxes[0, 1], h - th) < top or min(sample_bboxes[0, 0], w - tw) < left:
             # print('flag1')
-            i = random.randint(0, sample_bboxes[0, 1])
-            j = random.randint(0, sample_bboxes[0, 0])
+            i = random.randint(0, h-th)
+            j = random.randint(0, w-tw)
         else:
             # print('flag2')
             i = random.randint(top, min(sample_bboxes[0, 1], h - th))
@@ -70,12 +70,12 @@ def random_crop(imgs, img_size, character_bboxes):
 
         crop_h = sample_bboxes[1, 1] if th < sample_bboxes[1, 1] - i else th
         crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] - j else tw
-    elif len(word_bboxes) > 0:
+    # elif len(word_bboxes) > 0:
         # print('flag3')
-        sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
+        # sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
         ### train for IC15 dataset####
-        i = random.randint(0, sample_bboxes[0,1])
-        j = random.randint(0, sample_bboxes[0,0])
+        # i = random.randint(0, sample_bboxes[0,1])
+        # j = random.randint(0, sample_bboxes[0,0])
 
         # temp_img = imgs[0].copy()
         # cv2.rectangle(temp_img, (0,0), (sample_bboxes[0,0], sample_bboxes[0,1]), (0,0,0), -1)
@@ -89,8 +89,10 @@ def random_crop(imgs, img_size, character_bboxes):
         # crop_w = sample_bboxes[1, 0] if tw < sample_bboxes[1, 0] else tw
     else:
         # print('flag4')
-        i, j = 0, 0
-        crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
+        # i, j = 0, 0
+        i = random.randint(0, h - th)
+        j = random.randint(0, w - tw)
+        # crop_h, crop_w = h + 1, w + 1  # make the crop_h, crop_w > tw, th
 
     for idx in range(len(imgs)):
         if len(imgs[idx].shape) == 3:
@@ -122,7 +124,7 @@ def random_crop_v2(imgs, img_size, character_bboxes):
                 [[bboxes[:, :, 0].min(), bboxes[:, :, 1].min()], [bboxes[:, :, 0].max(), bboxes[:, :, 1].max()]])
     word_bboxes = np.array(word_bboxes, np.int32)
 
-    if random.random() > 0.6 and len(word_bboxes) > 0:
+    if random.random() > 0.01 and len(word_bboxes) > 0:
 
         sample_bboxes = word_bboxes[random.randint(0, len(word_bboxes) - 1)]
         left = max(sample_bboxes[1, 0] - img_size[0], 0)
