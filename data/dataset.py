@@ -19,7 +19,7 @@ from utils import config
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
 from data.imgaug import random_scale, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
-from watershed import watershed, watershed4
+from watershed import watershed, watershed4, watershed_v2
 from data.pointClockOrder import mep
 from utils import craft_utils
 
@@ -373,10 +373,8 @@ class ICDAR2015(data.Dataset):
 
 
             #pursedo_bboxes, color_markers = watershed4(bgr_region_scores, viz=False)
-            pursedo_bboxes, color_markers = watershed(input, bgr_region_scores, viz=False)
-
-
-
+            pursedo_bboxes, color_markers = watershed_v2(bgr_region_scores, viz=True)
+            import ipdb; ipdb.set_trace()
             #pursedo_bboxes[:,:, 0] = np.clip(pursedo_bboxes[:,:, 0], 0, bgr_region_scores.shape[1])
             #pursedo_bboxes[:,:, 1] = np.clip(pursedo_bboxes[:,:, 1], 0, bgr_region_scores.shape[0])
 

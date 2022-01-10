@@ -110,6 +110,12 @@ def watershed(image,region_score, viz):
 
     boxes = []
     for i in range(2, np.max(markers) + 1):
+
+        # 변경 : make box without angle
+
+
+
+        # make box with angle(minAreaRect)
         np_contours = np.roll(np.array(np.where(markers == i)), 1, axis=0).transpose().reshape(-1, 2)
         rectangle = cv2.minAreaRect(np_contours)
         box = cv2.boxPoints(rectangle)
@@ -201,16 +207,26 @@ def watershed_v2(region_score, viz):
     # make boxes
     boxes = []
     for i in range(2, np.max(final_markers) + 1):
-        np_contours = np.roll(np.array(np.where(final_markers == i)), 1, axis=0).transpose().reshape(-1, 2)
-        rectangle = cv2.minAreaRect(np_contours)
-        box = cv2.boxPoints(rectangle)
 
-        startidx = box.sum(axis=1).argmin()
-        box = np.roll(box, 4 - startidx, 0)
-        poly = plg.Polygon(box)
-        area = poly.area()
-        if area < 10:
-            continue
+        # 변경 후 : make box without angle
+        x_min, x_max = np.min(np.where(final_markers == i)[0]), np.max(np.where(final_markers == i)[0])
+        y_min, y_max = np.min(np.where(final_markers == i)[1]), np.max(np.where(final_markers == i)[1])
+        print(x_min, x_max, y_min, y_max)
+        box = [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
+
+        # 변경 전 : make box with angle(minAreaRect)
+
+        # np_contours = np.roll(np.array(np.where(final_markers == i)), 1, axis=0).transpose().reshape(-1, 2)
+        # rectangle = cv2.minAreaRect(np_contours)
+        # box = cv2.boxPoints(rectangle)
+
+        # startidx = box.sum(axis=1).argmin()
+        # box = np.roll(box, 4 - startidx, 0)
+        # poly = plg.Polygon(box)
+        # area = poly.area()
+        # if area < 10:
+        #     continue
+
         box = np.array(box)
         boxes.append(box)
         # if visual:
