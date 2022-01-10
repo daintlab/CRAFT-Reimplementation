@@ -1,0 +1,260 @@
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------
+------------ Options -------------
+results_dir: ./results_dir/
+synthData_dir: /data/SynthText/
+icdar2015_dir: /data/ICDAR2015/
+ckpt_path: /nas/home/jihyokim/workspace/craft/craft-backtime92-revise/CRAFT_clr_95000.pth
+st_iter: 0
+end_iter: 50000
+icdar_batch: 20
+lr: 0.0001
+lr_decay: 10000
+gamma: 0.8
+weight_decay: 0.0005
+num_workers: 0
+aug: True
+amp: True
+trained_model: 
+text_threshold: 0.7
+low_text: 0.4
+link_threshold: 0.4
+cuda: True
+canvas_size: 2240
+mag_ratio: 2
+poly: False
+isTraingDataset: False
+test_folder: /data/ICDAR2015/
+---------------------------------------

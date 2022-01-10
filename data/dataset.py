@@ -19,7 +19,7 @@ from utils import config
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
 from data.imgaug import random_scale, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
-from watershed import watershed, watershed1,  watershed4
+from watershed import watershed, watershed1,  watershed4, watershed_v2
 from data.pointClockOrder import mep
 from utils import craft_utils
 
@@ -400,12 +400,7 @@ class ICDAR2015(data.Dataset):
             bgr_region_scores = cv2.resize(region_scores, (input.shape[1], input.shape[0]))
             bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
 
-
-            #pursedo_bboxes, color_markers = watershed4(bgr_region_scores, viz=False)
-            #pursedo_bboxes, color_markers = watershed1(input.copy(), bgr_region_scores.copy(), visual=False)
-            pursedo_bboxes, color_markers = watershed(input.copy(), bgr_region_scores.copy(), viz=False)
-
-            #import ipdb;ipdb.set_trace()
+            pursedo_bboxes, color_markers = watershed_v2(bgr_region_scores.copy(), input.copy(), viz=True)
 
             if len(pursedo_bboxes) > 0:
 
