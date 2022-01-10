@@ -153,7 +153,7 @@ class GaussianTransformer(object):
             #       np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32),
             #       ori_box-np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32)))
 
-            #import ipdb;ipdb.set_trace()
+            import ipdb;ipdb.set_trace()
             print('second filter {} {} {}'.format(width,height,singal))
             print('error message {}'.format(e))
         return image
