@@ -400,7 +400,7 @@ class ICDAR2015(data.Dataset):
             bgr_region_scores = cv2.resize(region_scores, (input.shape[1], input.shape[0]))
             bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
 
-            pursedo_bboxes, color_markers = watershed_v2(bgr_region_scores.copy(), input.copy(), viz=True)
+            pursedo_bboxes, color_markers = watershed_v2(bgr_region_scores.copy(), input.copy(), viz=False)
 
             if len(pursedo_bboxes) > 0:
 
