@@ -26,7 +26,7 @@ def sidePoint(Apoint, Bpoint, h, w, placehold):
     angle = abs(math.atan(pointAngle(Apoint, Bpoint)))
     distance = pointDistance(Apoint, Bpoint)
 
-    halfIncreaseDistance = 0.5 * distance
+    halfIncreaseDistance = 0.75 * distance
 
     XaxisIncreaseDistance = abs(math.cos(angle) * halfIncreaseDistance)
     YaxisIncreaseDistance = abs(math.sin(angle) * halfIncreaseDistance)

@@ -72,7 +72,7 @@ def watershed_v2(region_score, input_img, viz):
 
     # Finding sure foreground area
     dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
-    ret, sure_fg = cv2.threshold(gray, 0.6 * gray.max(), 255, 0)
+    ret, sure_fg = cv2.threshold(gray, 0.7 * gray.max(), 255, 0)
 
     # Finding unknown region
     sure_fg = np.uint8(sure_fg)
@@ -90,7 +90,7 @@ def watershed_v2(region_score, input_img, viz):
     dist_transform = cv2.normalize(dist_transform, dist_transform, 0, 1.0, cv2.NORM_MINMAX) * 255
     dist_transform = np.uint8(dist_transform)
     dist_transform = cv2.cvtColor(dist_transform, cv2.COLOR_GRAY2RGB)
-    ret, dist_transform_binary = cv2.threshold(dist_transform, 0.2 * dist_transform.max(), 255, 0)
+    ret, dist_transform_binary = cv2.threshold(dist_transform, 0.5 * dist_transform.max(), 255, 0)
 
     final_markers = cv2.watershed(dist_transform_binary, init_markers)
     region_score[final_markers == -1] = [255, 0, 0]

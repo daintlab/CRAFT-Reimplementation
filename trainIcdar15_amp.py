@@ -36,7 +36,7 @@ parser.add_argument("--ckpt_path", default='/nas/home/jihyokim/jm/CRAFT-new-back
                     help="path to pretrained model")
 parser.add_argument('--st_iter', default=0, type = int,
                     help='start iter')
-parser.add_argument('--end_iter', default=50000, type = int,
+parser.add_argument('--end_iter', default=25000, type = int,
                     help='end iter')
 
 parser.add_argument('--icdar_batch', default=15, type = int,
@@ -47,7 +47,7 @@ parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
 parser.add_argument('--lr_decay', default=10000, type=int, help='learning rate decay')
 parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
-parser.add_argument('--weight_decay', default=5e-4, type=float,
+parser.add_argument('--weight_decay', default=1e-4, type=float,
                     help='Weight decay')
 parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
@@ -58,7 +58,7 @@ parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
 parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
 parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
-parser.add_argument('--link_threshold', default=0.4, type=float, help='link confidence threshold')
+parser.add_argument('--link_threshold', default=0.3, type=float, help='link confidence threshold')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
 parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
 parser.add_argument('--mag_ratio', default=2, type=float, help='image magnification ratio')

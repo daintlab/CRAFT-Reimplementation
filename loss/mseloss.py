@@ -24,7 +24,6 @@ class Maploss(nn.Module):
         negative_pixel = (loss_label <= 0.1).float()
         negative_pixel_number = torch.sum(negative_pixel)
 
-
         if negative_pixel_number < 3*positive_pixel_number:
             negative_loss_region = pre_loss * negative_pixel
             negative_loss = torch.sum(negative_loss_region) / negative_pixel_number
