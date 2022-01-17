@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import math
 from math import exp
-
+import utils.config
 
 def pointAngle(Apoint, Bpoint):
     angle = (Bpoint[1] - Apoint[1]) / ((Bpoint[0] - Apoint[0]) + 10e-8)
@@ -26,7 +26,7 @@ def sidePoint(Apoint, Bpoint, h, w, placehold):
     angle = abs(math.atan(pointAngle(Apoint, Bpoint)))
     distance = pointDistance(Apoint, Bpoint)
 
-    halfIncreaseDistance = 0.5 * distance
+    halfIncreaseDistance = utils.config.ENLARGEBOX_MAGINE * distance
 
     XaxisIncreaseDistance = abs(math.cos(angle) * halfIncreaseDistance)
     YaxisIncreaseDistance = abs(math.sin(angle) * halfIncreaseDistance)

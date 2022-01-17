@@ -179,6 +179,7 @@ def main(model_path, args, evaluator, data_li=''):
     for k, img_path in enumerate(tqdm(total_img_path)):
         image = cv2.imread(img_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
         #image = imgproc.loadImage(img_path)
         single_img_bbox = []
         bboxes, polys, score_text = test_net(model,
@@ -192,7 +193,7 @@ def main(model_path, args, evaluator, data_li=''):
                                              args.mag_ratio)
 
         # # # # -------------------------------------------------------------------------------------------------------#
-        #
+
         # if test_folder.split('/')[-1].lower() == 'icdar2013':
         #     rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
         #                 105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
@@ -207,6 +208,8 @@ def main(model_path, args, evaluator, data_li=''):
         #    viz = True
         #
         # if viz == True:
+        #
+        #     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         #     outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
         #     if not os.path.exists(outpath):
         #         os.makedirs(outpath)
@@ -234,9 +237,9 @@ def main(model_path, args, evaluator, data_li=''):
         #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
         #     overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
         #     cv2.imwrite(overlay_aff_file, overlay_aff)
-
-            #ori_image_path = outpath + "/res_" + filename + '.jpg'
-            #cv2.imwrite(ori_image_path,image)
+        #
+        #     ori_image_path = outpath + "/res_" + filename + '.jpg'
+        #     cv2.imwrite(ori_image_path,image)
 
         # # # --------------------------------------------------------------------------------------------------------#
 
@@ -377,7 +380,7 @@ if __name__ == '__main__':
     parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
     parser.add_argument('--test_folder', default='/media/yanhai/disk1/ICDAR/icdar2013', type=str,
                         help='folder path to input images')
-    parser.add_argument('--results_dir', default='/media/yanhai/disk1/ICDAR/icdar2013', type=str,
+    parser.add_argument('--results_dir', default='', type=str,
                         help='Path to save checkpoints')
 
 

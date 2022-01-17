@@ -19,7 +19,7 @@ from utils import config
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
 from data.imgaug import random_scale, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
-from watershed import watershed, watershed1,  watershed4
+from watershed import watershed, watershed_jm, watershed_dj
 from data.pointClockOrder import mep
 from utils import craft_utils
 
@@ -275,8 +275,6 @@ class SynthTextDataLoader(data.Dataset):
 
 
 
-
-
 class ICDAR2015(data.Dataset):
     def __init__(self, net, icdar2015_folder, target_size=768, viz=False, sigma=40):
 
@@ -390,6 +388,7 @@ class ICDAR2015(data.Dataset):
             input_copy = input.copy()
 
 
+
             img_torch = torch.from_numpy(imgproc.normalizeMeanVariance(input, mean=(0.485, 0.456, 0.406),
                                                                        variance=(0.229, 0.224, 0.225)))
             img_torch = img_torch.permute(2, 0, 1).unsqueeze(0)
@@ -398,14 +397,29 @@ class ICDAR2015(data.Dataset):
             region_scores = scores[0, :, :, 0].cpu().data.numpy()
             region_scores = np.uint8(np.clip(region_scores, 0, 1) * 255)
             bgr_region_scores = cv2.resize(region_scores, (input.shape[1], input.shape[0]))
+
+            ###
+            #cv2.imwrite(os.path.join(utils.config.RESULT_DIR, '{}_{}'.format(imagename, 'region_score.jpg')), bgr_region_scores)
+
             bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
 
 
-            #pursedo_bboxes, color_markers = watershed4(bgr_region_scores, viz=False)
-            #pursedo_bboxes, color_markers = watershed1(input.copy(), bgr_region_scores.copy(), visual=False)
-            pursedo_bboxes, color_markers = watershed(input.copy(), bgr_region_scores.copy(), viz=False)
+            ###
+            #ori = cv2.cvtColor(input_copy, cv2.COLOR_BGR2RGB)
+            #cv2.imwrite(os.path.join(utils.config.RESULT_DIR, '{}_{}'.format(imagename, 'ori.jpg')), ori)
 
-            #import ipdb;ipdb.set_trace()
+
+
+
+
+
+            #viz = True
+            #pursedo_bboxes, color_markers = watershed(input.copy(), bgr_region_scores.copy(), viz=False)
+            pursedo_bboxes, color_markers = watershed_jm(bgr_region_scores, viz=False)
+
+
+
+
 
             if len(pursedo_bboxes) > 0:
 
@@ -479,7 +493,7 @@ class ICDAR2015(data.Dataset):
             else:
                 bboxes = pursedo_bboxes
 
-
+            #viz = True
             if viz == True:
 
                # -----------------------------------------------------------------------------------------------#
@@ -513,7 +527,7 @@ class ICDAR2015(data.Dataset):
                                        input_copy1[:, :, ::-1],input_copy2[:, :, ::-1], target_color])
 
 
-                save_path = os.path.join(config.RESULT_DIR, str(config.ITER//100))
+                save_path = os.path.join(config.RESULT_DIR, str(config.ITER//(1000//config.ICDAR_BATCH)))
                 if not os.path.exists(os.path.dirname(save_path)):
                     os.makedirs(os.path.dirname(save_path))
                 cv2.imwrite(os.path.join(save_path, '{}_{}'.format(imagename, 'hstack.jpg')), viz_image)

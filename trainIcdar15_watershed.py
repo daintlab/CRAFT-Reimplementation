@@ -110,6 +110,7 @@ if __name__ == "__main__":
     utils.config.RESULT_DIR = args.results_dir
     utils.config.AUG = args.aug
     utils.config.ENLARGEBOX_MAGINE = args.enlargebox_mg
+    utils.config.ICDAR_BATCH = args.icdar_batch
 
 
 
@@ -195,153 +196,13 @@ if __name__ == "__main__":
         for index, (real_images, real_region_label, real_affi_label, real_confidence_mask, real_confidences) \
                 in enumerate(real_data_loader):
             start_time = time.time()
-            craft.train()
-
-            if train_step>0 and train_step % args.lr_decay==0:
-                update_lr_rate_step += 1
-                training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
-
-
-
-            # syn image load
-            syn_images, syn_region_label, syn_affi_label, syn_confidence_mask, _ = next(batch_syn)
-            images = torch.cat((syn_images, real_images), 0)
-
-
-            # cat syn & real image
-            region_image_label = torch.cat((syn_region_label, real_region_label), 0)
-            affinity_image_label = torch.cat((syn_affi_label, real_affi_label), 0)
-            mask = torch.cat((syn_confidence_mask, real_confidence_mask), 0)
-
-
-            images = Variable(images).cuda()
-            region_image_label = region_image_label.type(torch.FloatTensor)
-            affinity_image_label = affinity_image_label.type(torch.FloatTensor)
-            region_image_label = Variable(region_image_label).cuda()
-            affinity_image_label = Variable(affinity_image_label).cuda()
-            confidence_mask_label = Variable(mask).cuda()
-
-            if args.amp:
-                with torch.cuda.amp.autocast():
-                    output, _ = craft(images)
-                    out1 = output[:, :, :, 0]
-                    out2 = output[:, :, :, 1]
-                    # loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label,
-                    #                  args.neg_rto)
-
-                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
-
-
-
-
-            else:
-                output, _ = craft(images)
-                out1 = output[:, :, :, 0]
-                out2 = output[:, :, :, 1]
-                loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
-
-
-
-
-
-            optimizer.zero_grad()
-
-
-            if args.amp:
-                scaler.scale(loss).backward()
-                scaler.step(optimizer)
-                scaler.update()
-
-            else:
-                loss.backward()
-                optimizer.step()
-
-
-
-            end_time = time.time()
-            loss_value += loss.item()
-            batch_time += (end_time - start_time)
-            losses.update(loss.item(), images.size(0))
+            craft.eval()
 
             if train_step > 0 and train_step%5==0:
-                mean_loss = loss_value / 5
-                loss_value = 0
-                display_batch_time = time.time()
-                avg_batch_time = batch_time/5
-                batch_time = 0
+                print("{}, training_step: {}|{} "
+                      .format(time.strftime('%Y-%m-%d:%H:%M:%S',time.localtime(time.time())), train_step,whole_training_step))
 
-                print("{}, training_step: {}|{}, learning rate: {:.8f}, training_loss: {:.5f}, avg_batch_time: {:.5f}"
-                      .format(time.strftime('%Y-%m-%d:%H:%M:%S',time.localtime(time.time())), train_step,
-                              whole_training_step, training_lr, mean_loss, avg_batch_time))
+            train_step+=1
 
 
 
-            if train_step % 500 == 0 and train_step != 0:
-
-                print('Saving state, index:', train_step)
-                if args.amp:
-                    torch.save({
-                        'iter': train_step,
-                        'craft': craft.state_dict(),
-                        'optimizer': optimizer.state_dict(),
-                        "scaler": scaler.state_dict()
-                    }, args.results_dir + '/CRAFT_clr_amp_' + repr(train_step) + '.pth')
-
-
-                else:
-                    torch.save({
-                        'iter': train_step,
-                        'craft': craft.state_dict(),
-                        'optimizer': optimizer.state_dict()
-                    }, args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth')
-
-
-                evaluator = DetectionIoUEvaluator()
-
-                try:
-                    if args.amp:
-                        metrics = main(args.results_dir + '/CRAFT_clr_amp_' + repr(train_step) + '.pth', args,
-                                       evaluator)
-                    else:
-                        metrics = main(args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth', args, evaluator)
-
-
-                    val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])
-                except:
-                    val_logger.write([train_step, losses.avg, str(0)])
-
-                losses.reset()
-
-
-            train_step += 1
-            utils.config.ITER = train_step
-            if train_step >= whole_training_step: break
-
-
-    #last model save
-    if args.amp:
-        torch.save({
-            'iter': train_step,
-            'craft': craft.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            "scaler": scaler.state_dict()
-        }, args.results_dir + '/CRAFT_clr_amp_' + repr(train_step) + '.pth')
-
-
-    else:
-        torch.save({
-            'iter': train_step,
-            'craft': craft.state_dict(),
-            'optimizer': optimizer.state_dict()
-        }, args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth')
-
-    evaluator = DetectionIoUEvaluator()
-    # metrics = main(craft, args, evaluator)
-
-    if args.amp:
-        metrics = main(args.results_dir + '/CRAFT_clr_amp_' + repr(train_step) + '.pth', args,
-                       evaluator)
-    else:
-        metrics = main(args.results_dir + '/CRAFT_clr_' + repr(train_step) + '.pth', args, evaluator)
-
-    val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])
