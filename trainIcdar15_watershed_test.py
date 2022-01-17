@@ -4,6 +4,7 @@ import pandas as pd
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import Polygon as plg
 import cv2
 from gaussianMap.gaussian import GaussianTransformer
 
@@ -18,7 +19,7 @@ args = parser.parse_args()
 
 
 
-def watershed_v2(region_score, viz):
+def watershed_dj(region_score, viz):
     region_scores_color = region_score.copy()
     region_scores_color = cv2.cvtColor(region_scores_color, cv2.COLOR_RGB2GRAY)
     region_scores_color = cv2.applyColorMap(np.uint8(region_scores_color), cv2.COLORMAP_JET)
@@ -87,6 +88,69 @@ def watershed_v2(region_score, viz):
     return np.array(boxes), vis_result
 
 
+
+def watershed_jm(region_score, viz):
+    # jm watershed
+
+    visual = viz
+    ori_region_score = region_score.copy()
+
+    if len(region_score.shape) == 3:
+        gray = cv2.cvtColor(region_score, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = region_score
+
+    # 1. binary
+    ret, frame = cv2.threshold(gray, 0.3 * np.max(gray), 255, cv2.THRESH_BINARY)
+    ret, background = cv2.threshold(gray, 0.2 * np.max(gray), 255, cv2.THRESH_BINARY)
+    ret, foreground = cv2.threshold(gray, 0.6 * np.max(gray), 255, cv2.THRESH_BINARY)
+
+    # 2. opening
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    open_fr = cv2.morphologyEx(frame, cv2.MORPH_OPEN, kernel, iterations=2)
+    open_bg = cv2.morphologyEx(background, cv2.MORPH_OPEN, kernel, iterations=2)
+    open_fg = cv2.morphologyEx(foreground, cv2.MORPH_OPEN, kernel, iterations=2)
+
+    # 3. surface background,foreground, unknown
+    surface_fr = cv2.dilate(open_fr, kernel, iterations=1)
+    surface_bg = cv2.dilate(open_bg, kernel, iterations=2)
+    surface_fg = open_fg
+    surface_fg = np.uint8(surface_fg)
+    surface_bg = np.uint8(surface_bg)
+    unknown = cv2.subtract(surface_bg, surface_fg)
+
+    # 4. watershed
+    ret, markers = cv2.connectedComponents(surface_fg)
+    final_frame = cv2.cvtColor(surface_fr, cv2.COLOR_GRAY2RGB)
+
+    markers = markers + 1
+    markers[unknown == 255] = 0
+    markers = cv2.watershed(final_frame, markers=markers) # final_frame
+    final_frame[markers == -1] = [0, 0, 255]
+
+    color_markers = np.uint8(markers + 1)
+    color_markers = color_markers / (color_markers.max() / 255)
+    color_markers = np.uint8(color_markers)
+    color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
+
+
+
+    boxes = []
+    for i in range(2, np.max(markers) + 1):
+        np_contours = np.roll(np.array(np.where(markers == i)), 1, axis=0).transpose().reshape(-1, 2)
+
+        x, y, w, h = cv2.boundingRect(np_contours)
+        box =[[x, y], [x+w, y], [x+w, y+h], [x, y+h]]
+        poly = plg.Polygon(box)
+        area = poly.area()
+        if area < 10:
+            continue
+        box = np.array(box)
+        boxes.append(box)
+
+    vis_result = [surface_bg.copy(), surface_fg.copy(), unknown.copy(), final_frame.copy(), color_markers.copy()]
+
+    return np.array(boxes), vis_result
 
 
 def viz(boxes, img, region, viz, img_path, mode = 'single'):
@@ -184,11 +248,11 @@ if __name__ == "__main__":
         bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
 
         # watershed
-        pursedo_bboxes, vis_result = watershed_v2(bgr_region_scores.copy(), True)
+        pursedo_bboxes, vis_result = watershed_jm(bgr_region_scores.copy(), True)
 
         # save img
         save_img_path = '{}_{}.jpg'.format(os.path.join(args.results_dir, img_list[i][:9]), 'watershed_jm')
-        viz(pursedo_bboxes, img_arr, bgr_region_scores, vis_result, save_img_path, mode='single')
+        viz(pursedo_bboxes, img_arr, bgr_region_scores, vis_result, save_img_path, mode='dd')
 
 
 

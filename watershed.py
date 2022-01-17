@@ -5,12 +5,9 @@ MIT License
 
 # -*- coding: utf-8 -*-
 import time
-<<<<<<< HEAD
 import os
-
-=======
 import random
->>>>>>> 686863f80d973cd5ecfdbae97c250514e22fa6a4
+
 
 import torch
 import torch.backends.cudnn as cudnn
