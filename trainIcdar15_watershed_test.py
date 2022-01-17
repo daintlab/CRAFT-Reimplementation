@@ -223,11 +223,10 @@ if __name__ == "__main__":
 
     # load full img, full region score
     image_path = args.data_dir
-    file_names = os.listdir(image_path)
+    folder_names = os.listdir(image_path)
 
-    img_list = sorted([file for file in file_names if file.split('_')[-1] == "ori.jpg"])
-    region_list = sorted([file for file in file_names if file.split('_')[-1] == "score.jpg"])
-
+    img_list = sorted([f'{folder}/{file}' for folder in folder_names for file in os.listdir(f'{image_path}/{folder}/') if file.split('_')[-1] == "ori.jpg"])
+    region_list = sorted([f'{folder}/{file}' for folder in folder_names for file in os.listdir(f'{image_path}/{folder}/') if file.split('_')[-1] == "score.jpg"])
 
     for i in range(len(img_list)):
 
@@ -251,7 +250,7 @@ if __name__ == "__main__":
         pursedo_bboxes, vis_result = watershed_jm(bgr_region_scores.copy(), True)
 
         # save img
-        save_img_path = '{}_{}.jpg'.format(os.path.join(args.results_dir, img_list[i][:9]), 'watershed_jm')
+        save_img_path = '{}_{}.jpg'.format(os.path.join(args.results_dir, img_list[i].split('/')[-1][:-8]), 'watershed_jm')
         viz(pursedo_bboxes, img_arr, bgr_region_scores, vis_result, save_img_path, mode='dd')
 
 
