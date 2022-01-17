@@ -61,7 +61,7 @@ parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound 
 parser.add_argument('--link_threshold', default=0.3, type=float, help='link confidence threshold')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
 parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
-parser.add_argument('--mag_ratio', default=2, type=float, help='image magnification ratio')
+parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
 parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015', type=str,

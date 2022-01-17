@@ -113,6 +113,7 @@ class GaussianTransformer(object):
 
         #bbox = self.enlargeBox(bbox, image.shape[0], image.shape[1])
         bbox_copy = bbox.copy()
+        # import ipdb;ipdb.set_trace()
         bbox = enlargebox(bbox, image.shape[0], image.shape[1])
 
         if signal == "affinity":

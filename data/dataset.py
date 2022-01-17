@@ -19,7 +19,7 @@ from utils import config
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
 from data.imgaug import random_scale, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
-from watershed import watershed, watershed1,  watershed4, watershed_v2
+from watershed import watershed, watershed1,  watershed4, watershed_v2, watershed_v3
 from data.pointClockOrder import mep
 from utils import craft_utils
 
@@ -400,7 +400,7 @@ class ICDAR2015(data.Dataset):
             bgr_region_scores = cv2.resize(region_scores, (input.shape[1], input.shape[0]))
             bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
 
-            pursedo_bboxes, color_markers = watershed_v2(bgr_region_scores.copy(), input.copy(), viz=False)
+            pursedo_bboxes, color_markers = watershed_v3(bgr_region_scores.copy(), input.copy(), viz=False)
 
             if len(pursedo_bboxes) > 0:
 
@@ -497,8 +497,11 @@ class ICDAR2015(data.Dataset):
                 region_scores_color = cv2.applyColorMap(np.uint8(region_scores), cv2.COLORMAP_JET)
                 region_scores_color = cv2.resize(region_scores_color, (input.shape[1], input.shape[0]))
 
-                #gaussian
+                # viz_image2 = np.hstack([input_copy[:, :, ::-1], region_scores_color, color_markers,
+                #                        input_copy1[:, :, ::-1], input_copy2[:, :, ::-1]])
+                # cv2.imwrite('/nas/home/gmuffiness/result/temp_hstack.jpg', viz_image2)
 
+                #gaussian
                 target = self.gen.generate_region(region_scores_color.shape, [_tmp_bboxes])
                 target_color = cv2.applyColorMap(target.astype('uint8'), cv2.COLORMAP_JET)
 
@@ -512,6 +515,9 @@ class ICDAR2015(data.Dataset):
                 if not os.path.exists(os.path.dirname(save_path)):
                     os.makedirs(os.path.dirname(save_path))
                 cv2.imwrite(os.path.join(save_path, '{}_{}'.format(imagename, 'hstack.jpg')), viz_image)
+                # if config.ITER == 0:
+                # cv2.imwrite(os.path.join(os.path.join(save_path, 'ori_img_v3'), '{}_{}'.format(imagename, 'img.jpg')), input_copy[:, :, ::-1])
+                # cv2.imwrite(os.path.join(os.path.join(save_path, 'region_score_v3'), '{}_{}'.format(imagename, 'region_score.jpg')), bgr_region_scores)
 
                 viz=False
 
@@ -674,10 +680,8 @@ class ICDAR2015(data.Dataset):
         # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
 
 
-        random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-
-
-
+        # random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
+        random_transforms = random_crop_v2(random_transforms, (self.target_size, self.target_size))
 
         if config.AUG == True:
             random_transforms = random_horizontal_flip(random_transforms)
