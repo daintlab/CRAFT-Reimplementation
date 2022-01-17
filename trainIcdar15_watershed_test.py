@@ -9,14 +9,10 @@ import cv2
 from gaussianMap.gaussian import GaussianTransformer
 
 
-parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
-parser.add_argument('--results_dir', default='/data/workspace/woans0104/CRAFT-re-backtime92/exp/weekly_back_2', type=str,
-                    help='Path to save checkpoints')
-parser.add_argument('--data_dir', default='/home/data/ocr/detection/SynthText/SynthText', type=str,
-                    help='Path to root directory of sample dataset')
+parser = argparse.ArgumentParser(description='Watershed Visualisation')
+parser.add_argument('--results_dir', default='./exp/watershed-vis/', type=str, help='Path where the result images will be saved')
+parser.add_argument('--data_dir', default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/0117_exp/watershed_sample/', type=str, help='Path where the test images are located')
 args = parser.parse_args()
-
-
 
 
 def watershed_dj(region_score, viz):
@@ -84,7 +80,6 @@ def watershed_dj(region_score, viz):
 
     vis_result = [sure_bg.copy(), sure_fg.copy(), unknown.copy(), dist_transform_binary.copy(),color_markers.copy()]
 
-
     return np.array(boxes), vis_result
 
 
@@ -133,8 +128,6 @@ def watershed_jm(region_score, viz):
     color_markers = np.uint8(color_markers)
     color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
 
-
-
     boxes = []
     for i in range(2, np.max(markers) + 1):
         np_contours = np.roll(np.array(np.where(markers == i)), 1, axis=0).transpose().reshape(-1, 2)
@@ -163,7 +156,6 @@ def viz(boxes, img, region, viz, img_path, mode = 'single'):
     region_scores_color = region.copy()
     region_scores_color = cv2.applyColorMap(np.uint8(region_scores_color), cv2.COLORMAP_JET)
 
-
     sure_bg_copy = cv2.cvtColor(sure_bg, cv2.COLOR_GRAY2RGB)
     sure_fg_copy = cv2.cvtColor(sure_fg, cv2.COLOR_GRAY2RGB)
     unknown_copy = cv2.cvtColor(unknown, cv2.COLOR_GRAY2RGB)
@@ -188,38 +180,42 @@ def viz(boxes, img, region, viz, img_path, mode = 'single'):
     gauss_target = gen.generate_region(region_scores_color.shape, [boxes])
     gauss_target_color = cv2.applyColorMap(gauss_target.astype('uint8'), cv2.COLORMAP_JET)
 
-
+    # save images
     if mode == 'single':
 
-        img_name, ext = os.path.splitext(img_path)
+        img_person, ext = os.path.splitext(img_path.split('/')[-1])
+        img_name, person = img_person.split('-')
 
+        save_path = os.path.join(args.results_dir, 'single')
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
 
-        cv2.imwrite('{}'.format(os.path.join(img_name+'_ori'+ext)), img)
-        cv2.imwrite('{}'.format(os.path.join(img_name + '_region' + ext)), region_scores_color)
-        cv2.imwrite('{}'.format(os.path.join(img_name + '_back' + ext)), sure_bg_copy)
-        cv2.imwrite('{}'.format(os.path.join(img_name + '_fore' + ext)), sure_fg_copy)
-        cv2.imwrite('{}'.format(os.path.join(img_name + '_unknown' + ext)), unknown_copy)
-        cv2.imwrite('{}'.format(os.path.join(img_name + '_frame' + ext)), frame_copy)
-        cv2.imwrite('{}'.format(os.path.join(img_name + '_watershed' + ext)), init_markers_copy)
-        cv2.imwrite('{}'.format(os.path.join(img_name + '_bbox_result' + ext)), bbox_input)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-original-{person}{ext}'), img)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-region-{person}{ext}'), region_scores_color)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-background-{person}{ext}'), sure_bg_copy)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-foreground-{person}{ext}'), sure_fg_copy)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-unknown-{person}{ext}'), unknown_copy)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-frame-{person}{ext}'), frame_copy)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-watershed-{person}{ext}'), init_markers_copy)
+        cv2.imwrite(os.path.join(save_path, f'{img_name}-single-bbox-result-{person}{ext}'), bbox_input)
 
-
-    else :
+    else:
         vis_result = np.hstack(
             [img, region_scores_color, sure_bg_copy, sure_fg_copy, unknown_copy, frame_copy, init_markers_copy,
              bbox_input,gauss_target_color])
+        
+        save_path = os.path.join(args.results_dir, 'hstack')
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
 
-
-        cv2.imwrite('{}'.format(img_path), vis_result)
-
-
+        cv2.imwrite(f"{save_path}/{img_path.split('/')[-1]}", vis_result)
+        
 
 if __name__ == "__main__":
 
     # make result dir
     if not os.path.exists(args.results_dir):
         os.mkdir(args.results_dir)
-
 
     # load full img, full region score
     image_path = args.data_dir
@@ -250,9 +246,5 @@ if __name__ == "__main__":
         pursedo_bboxes, vis_result = watershed_jm(bgr_region_scores.copy(), True)
 
         # save img
-        save_img_path = '{}_{}.jpg'.format(os.path.join(args.results_dir, img_list[i].split('/')[-1][:-8]), 'watershed_jm')
-        viz(pursedo_bboxes, img_arr, bgr_region_scores, vis_result, save_img_path, mode='dd')
-
-
-
-
+        save_img_path = '{}-{}.jpg'.format(os.path.join(args.results_dir, img_list[i].split('/')[-1][:-8]), 'jaemoon')
+        viz(pursedo_bboxes, img_arr, bgr_region_scores, vis_result, save_img_path, mode='hstack')
