@@ -10,8 +10,18 @@ from gaussianMap.gaussian import GaussianTransformer
 
 
 parser = argparse.ArgumentParser(description='Watershed Visualisation')
-parser.add_argument('--results_dir', default='./exp/watershed-vis/', type=str, help='Path where the result images will be saved')
-parser.add_argument('--data_dir', default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/0117_exp/watershed_sample/', type=str, help='Path where the test images are located')
+parser.add_argument('--mode', 
+                    default='single', 
+                    type=str, 
+                    help='if \'single\' it saves intermediate images individually, otherwise it saves all intermediate images to the one horizontally stacked image')
+parser.add_argument('--results_dir', 
+                    default='./exp/watershed-vis/', 
+                    type=str, 
+                    help='Path where the result images will be saved')
+parser.add_argument('--data_dir', 
+                    default='/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/0117_exp/watershed_sample/', 
+                    type=str, 
+                    help='Path where the test images are located')
 args = parser.parse_args()
 
 
@@ -247,4 +257,4 @@ if __name__ == "__main__":
 
         # save img
         save_img_path = '{}-{}.jpg'.format(os.path.join(args.results_dir, img_list[i].split('/')[-1][:-8]), 'jaemoon')
-        viz(pursedo_bboxes, img_arr, bgr_region_scores, vis_result, save_img_path, mode='hstack')
+        viz(pursedo_bboxes, img_arr, bgr_region_scores, vis_result, save_img_path, mode=args.mode)
