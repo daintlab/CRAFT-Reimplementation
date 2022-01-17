@@ -12,4 +12,5 @@ requirments.txt
 watershed.py
 basenet/*
 weights/*
+results_dir/*
 __pycache__

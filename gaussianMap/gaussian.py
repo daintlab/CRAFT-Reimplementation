@@ -101,7 +101,7 @@ class GaussianTransformer(object):
 
         return warped, width, height
 
-    def add_character(self, image, bbox, singal = None):
+    def add_character(self, image, bbox, signal = None):
 
         """
         mapping Gaussian heat maps to the character box coordinates of the image.
@@ -112,28 +112,23 @@ class GaussianTransformer(object):
 
 
         #bbox = self.enlargeBox(bbox, image.shape[0], image.shape[1])
-        bbxo_copy = bbox.copy()
+        bbox_copy = bbox.copy()
         bbox = enlargebox(bbox, image.shape[0], image.shape[1])
 
-        if singal == "affinity":
+        if signal == "affinity":
             bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = \
-                bbxo_copy[0][0], bbxo_copy[1][0], bbxo_copy[2][0], bbxo_copy[3][0]
-
+                bbox_copy[0][0], bbox_copy[1][0], bbox_copy[2][0], bbox_copy[3][0]
 
         if np.any(bbox < 0) or np.any(bbox[:, 0] > image.shape[1]) or np.any(bbox[:, 1] > image.shape[0]):
             return image
-        ori_box = bbox
+
         top_left = np.array([np.min(bbox[:, 0]), np.min(bbox[:, 1])]).astype(np.int32)
-        point = top_left
         bbox -= top_left[None, :]
         transformed, width, height = self.four_point_transform(bbox.astype(np.float32))
 
 
         # if width * height < 10:
         #     return image
-
-
-
 
         try:
             score_map = image[top_left[1]:top_left[1] + transformed.shape[0],
@@ -153,8 +148,8 @@ class GaussianTransformer(object):
             #       np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32),
             #       ori_box-np.array([np.min(ori_box[:, 0]), np.min(ori_box[:, 1])]).astype(np.int32)))
 
-            #import ipdb;ipdb.set_trace()
-            print('second filter {} {} {}'.format(width,height,singal))
+            # import ipdb;ipdb.set_trace()
+            print('second filter {} {} {}'.format(width,height,signal))
             print('error message {}'.format(e))
         return image
 
@@ -173,7 +168,7 @@ class GaussianTransformer(object):
         #
         # affinity = np.array([tl, tr, br, bl])
 
-        return self.add_character(image, affinity.copy(), singal='affinity'), np.expand_dims(affinity, axis=0)
+        return self.add_character(image, affinity.copy(), signal='affinity'), np.expand_dims(affinity, axis=0)
 
     def generate_region(self, image_size, bboxes, signal='none'):
         height, width, channel = image_size
@@ -182,7 +177,7 @@ class GaussianTransformer(object):
             character_bbox = np.array(bboxes[i])
             for j in range(bboxes[i].shape[0]):
                 #target = self.add_character(target, character_bbox[j], singal='region')
-                target = self.add_character(target, character_bbox[j], singal=signal)
+                target = self.add_character(target, character_bbox[j], signal=signal)
 
         return target
 

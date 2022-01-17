@@ -20,6 +20,7 @@ from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
 from data.imgaug import random_scale, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
 from watershed import watershed, watershed_jm, watershed_dj
+
 from data.pointClockOrder import mep
 from utils import craft_utils
 
@@ -409,16 +410,9 @@ class ICDAR2015(data.Dataset):
             #cv2.imwrite(os.path.join(utils.config.RESULT_DIR, '{}_{}'.format(imagename, 'ori.jpg')), ori)
 
 
-
-
-
-
             #viz = True
             #pursedo_bboxes, color_markers = watershed(input.copy(), bgr_region_scores.copy(), viz=False)
             pursedo_bboxes, color_markers = watershed_jm(bgr_region_scores, viz=False)
-
-
-
 
 
             if len(pursedo_bboxes) > 0:
