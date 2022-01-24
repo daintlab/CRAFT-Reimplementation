@@ -13,7 +13,7 @@ from collections import OrderedDict
 from data.dataset import SynthTextDataLoader, ICDAR2015
 
 from craft import CRAFT
-from loss.mseloss import Maploss
+from loss.mseloss import Maploss, Maploss_v2
 from torch.autograd import Variable
 from utils.util import save_parser, make_logger, AverageMeter
 from eval import main
@@ -56,9 +56,9 @@ parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed
 #for test
 
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
-parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
-parser.add_argument('--low_text', default=0.4, type=float, help='text low-bound score')
-parser.add_argument('--link_threshold', default=0.3, type=float, help='link confidence threshold')
+parser.add_argument('--text_threshold', default=0.85, type=float, help='text confidence threshold')
+parser.add_argument('--low_text', default=0.5, type=float, help='text low-bound score')
+parser.add_argument('--link_threshold', default=0.2, type=float, help='link confidence threshold')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
 parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
 parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         args.st_iter = net_param['optimizer']['state'][0]['step']
         args.lr = net_param['optimizer']['param_groups'][0]['lr']
 
-    criterion = Maploss()
+    criterion = Maploss_v2()
 
 
     # mixed precision

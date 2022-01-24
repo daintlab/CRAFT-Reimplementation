@@ -171,7 +171,7 @@ def watershed_v2(region_score, input_img, viz):
 
 def watershed_v3(region_score, input_img, viz):
 
-    if region_score.max() < 255 * 0.05:
+    if region_score.max() < 255 * 0.5:
         return np.array([], dtype=np.uint8), np.zeros(region_score.shape, np.uint8)
 
     ori_input_img = input_img.copy()

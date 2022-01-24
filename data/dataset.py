@@ -505,10 +505,10 @@ class ICDAR2015(data.Dataset):
                 target = self.gen.generate_region(region_scores_color.shape, [_tmp_bboxes])
                 target_color = cv2.applyColorMap(target.astype('uint8'), cv2.COLORMAP_JET)
 
-
+                overlay_img = cv2.addWeighted(input_copy[:, :, ::-1], 0.7, target_color, 0.3, 5)
                 # ori img , region score, watershed, box img
                 viz_image = np.hstack([input_copy[:, :, ::-1], region_scores_color,color_markers,
-                                       input_copy1[:, :, ::-1],input_copy2[:, :, ::-1], target_color])
+                                       input_copy1[:, :, ::-1],input_copy2[:, :, ::-1], target_color, overlay_img])
 
 
                 save_path = os.path.join(config.RESULT_DIR, str(config.ITER//100))
@@ -680,8 +680,8 @@ class ICDAR2015(data.Dataset):
         # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
 
 
-        # random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-        random_transforms = random_crop_v2(random_transforms, (self.target_size, self.target_size))
+        random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
+        # random_transforms = random_crop_v2(random_transforms, (self.target_size, self.target_size))
 
         if config.AUG == True:
             random_transforms = random_horizontal_flip(random_transforms)
@@ -779,7 +779,7 @@ if __name__ == "__main__":
         # region_image, affinity_image, character_bboxes = randomCrop(region_image, affinity_image, character_bboxes)
 
 
-        random_transforms = random_crop_v2(random_transforms, (768, 768), character_bboxes)
+        random_transforms = random_crop(random_transforms, (768, 768), character_bboxes)
         image, region_image, affinity_image, confidence_mask = random_transforms
         region_image = cv2.applyColorMap(region_image, cv2.COLORMAP_JET)
         affinity_image = cv2.applyColorMap(affinity_image, cv2.COLORMAP_JET)

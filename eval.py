@@ -214,168 +214,62 @@ def main(model_path, args, evaluator, data_li=''):
             single_img_bbox.append(box_info)
         total_img_bboxes_pre.append(single_img_bbox)
 
-        # if viz == True:
-        #     outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
-        #     if not os.path.exists(outpath):
-        #         os.makedirs(outpath)
-        #
-        #     if test_folder.split('/')[-1].lower() == 'icdar2013':
-        #         saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-        #     else:
-        #         saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-        #
-        #
-        #
-        #     height, width, channel = image.shape
-        #     overlay_region = cv2.resize(score_text[0], (width, height))
-        #     overlay_aff = cv2.resize(score_text[1], (width, height))
-        #
-        #     overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
-        #     overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
-        #
-        #
-        #     # save overlay
-        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
-        #     overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
-        #     # cv2.imwrite(overlay_region_file, overlay_region)
-        #
-        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
-        #     overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
-        #     # cv2.imwrite(overlay_aff_file, overlay_aff)
-        #
-        #     ori_image_path = outpath + "/res_" + filename + '.jpg'
-        #     # cv2.imwrite(ori_image_path,image)
-        #
-        #     boxed_img = image.copy()
-        #     for word_box in single_img_bbox:
-        #         # sp = np.clip(np.min(word_box['points'], axis=0), 0, max(height, width)).astype(np.uint32)
-        #         # ep = np.max(word_box['points'], axis=0).astype(np.uint32)
-        #         # cv2.rectangle(boxed_img, sp, ep, (0, 0, 255), 3)
-        #         # import ipdb;ipdb.set_trace()
-        #         cv2.polylines(boxed_img, [word_box['points'].astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=3)
-        #
-        #     box_image_path = outpath + "/res_" + filename + '_box.jpg'
-        #     # cv2.imwrite(box_image_path, boxed_img)
-        #
-        #     temp1 = np.hstack([image, boxed_img])
-        #     temp2 = np.hstack([overlay_region, overlay_aff])
-        #     temp3 = np.vstack([temp1, temp2])
-        #
-        #     cv2.imwrite(box_image_path, temp3)
-        # # # --------------------------------------------------------------------------------------------------------#
+        if viz == True:
+            outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
+            if not os.path.exists(outpath):
+                os.makedirs(outpath)
 
+            if test_folder.split('/')[-1].lower() == 'icdar2013':
+                saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+            else:
+                saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+
+
+
+            height, width, channel = image.shape
+            overlay_region = cv2.resize(score_text[0], (width, height))
+            overlay_aff = cv2.resize(score_text[1], (width, height))
+
+            overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
+            overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
+
+
+            # save overlay
+            filename, file_ext = os.path.splitext(os.path.basename(img_path))
+            overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
+            # cv2.imwrite(overlay_region_file, overlay_region)
+
+            filename, file_ext = os.path.splitext(os.path.basename(img_path))
+            overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
+            # cv2.imwrite(overlay_aff_file, overlay_aff)
+
+            ori_image_path = outpath + "/res_" + filename + '.jpg'
+            # cv2.imwrite(ori_image_path,image)
+
+            boxed_img = image.copy()
+            for word_box in single_img_bbox:
+                # sp = np.clip(np.min(word_box['points'], axis=0), 0, max(height, width)).astype(np.uint32)
+                # ep = np.max(word_box['points'], axis=0).astype(np.uint32)
+                # cv2.rectangle(boxed_img, sp, ep, (0, 0, 255), 3)
+                # import ipdb;ipdb.set_trace()
+                cv2.polylines(boxed_img, [word_box['points'].astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=3)
+
+            box_image_path = outpath + "/res_" + filename + '_box.jpg'
+            # cv2.imwrite(box_image_path, boxed_img)
+
+            temp1 = np.hstack([image, boxed_img])
+            temp2 = np.hstack([overlay_region, overlay_aff])
+            temp3 = np.vstack([temp1, temp2])
+
+            cv2.imwrite(box_image_path, temp3)
+        # # # --------------------------------------------------------------------------------------------------------#
 
     results = []
     for gt, pred in zip(total_imgs_bboxes_gt, total_img_bboxes_pre):
         results.append(evaluator.evaluate_image(gt, pred))
     metrics = evaluator.combine_results(results)
     print(metrics)
-
-
     return metrics
-
-#
-# def main(model, args, evaluator, data_li=''):
-#
-#     import ipdb;ipdb.set_trace()
-#     model.eval()
-#
-#     if data_li != '':
-#         total_imgs_bboxes_gt, total_img_path = load_synthtext_gt(args.synthData_dir, data_li=data_li)
-#
-#     else:
-#         test_folder = args.test_folder
-#
-#
-#
-#         if test_folder.split('/')[-1].lower() == 'icdar2013':
-#             total_imgs_bboxes_gt, total_img_path, gt_folder_path = load_icdar2013_gt(dataFolder=test_folder,
-#                                                                      isTraing=args.isTraingDataset)
-#         else:
-#             total_imgs_bboxes_gt, total_img_path, gt_folder_path = load_icdar2015_gt(dataFolder=test_folder,
-#                                                                      isTraing=args.isTraingDataset)
-#
-#
-#     total_img_bboxes_pre = []
-#     for k, img_path in enumerate(tqdm(total_img_path)):
-#         image = cv2.imread(img_path)
-#         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-#         #image = imgproc.loadImage(img_path)
-#         single_img_bbox = []
-#         bboxes, polys, score_text = test_net(model,
-#                                              image,
-#                                              args.text_threshold,
-#                                              args.link_threshold,
-#                                              args.low_text,
-#                                              args.cuda,
-#                                              args.poly,
-#                                              args.canvas_size,
-#                                              args.mag_ratio)
-#
-#         # # # -------------------------------------------------------------------------------------------------------#
-#
-#         if test_folder.split('/')[-1].lower() == 'icdar2013':
-#             rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
-#                         105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
-#
-#         else:
-#             rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
-#                         399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
-#
-#
-#         viz = True
-#         if k in rnd_list:
-#            viz = True
-#
-#         if viz == True:
-#             outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
-#             if not os.path.exists(outpath):
-#                 os.makedirs(outpath)
-#
-#             if test_folder.split('/')[-1].lower() == 'icdar2013':
-#                 saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-#             else:
-#                 saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-#
-#
-#
-#             height, width, channel = image.shape
-#             overlay_region = cv2.resize(score_text[0], (width, height))
-#             overlay_aff = cv2.resize(score_text[1], (width, height))
-#
-#             overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
-#             overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
-#
-#
-#             # save overlay
-#             filename, file_ext = os.path.splitext(os.path.basename(img_path))
-#             overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
-#             cv2.imwrite(overlay_region_file, overlay_region)
-#
-#             filename, file_ext = os.path.splitext(os.path.basename(img_path))
-#             overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
-#             cv2.imwrite(overlay_aff_file, overlay_aff)
-#
-#             #ori_image_path = outpath + "/res_" + filename + '.jpg'
-#             #cv2.imwrite(ori_image_path,image)
-#
-#         # # # ----------------------------------------------------------------------------------------------------#
-#
-#         for box in bboxes:
-#             box_info = {"points": None, "text": None, "ignore": None}
-#             box_info["points"] = box
-#             box_info["text"] = "###"
-#             box_info["ignore"] = False
-#             single_img_bbox.append(box_info)
-#         total_img_bboxes_pre.append(single_img_bbox)
-#     results = []
-#     for gt, pred in zip(total_imgs_bboxes_gt, total_img_bboxes_pre):
-#         results.append(evaluator.evaluate_image(gt, pred))
-#     metrics = evaluator.combine_results(results)
-#     print(metrics)
-#
-#
-#     return metrics
 
 if __name__ == '__main__':
 
@@ -390,7 +284,7 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda for inference')
     parser.add_argument('--amp', default=False, type=str2bool, help='Use cuda for inference')
     parser.add_argument('--canvas_size', default=2240, type=int, help='image size for inference')
-    parser.add_argument('--mag_ratio', default=2.0, type=float, help='image magnification ratio')
+    parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
     parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
     parser.add_argument('--isTraingDataset', default=False, type=str2bool, help='test for traing or test data')
     parser.add_argument('--test_folder', default='/data/ICDAR2015', type=str,

@@ -4,7 +4,8 @@ import numpy as np
 import cv2
 import os
 import math
-from gaussianMap import imgproc
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from data.boxEnlarge import enlargebox
 
 
@@ -214,13 +215,15 @@ if __name__ == '__main__':
     # gaussian.saveGaussianHeat()
     image = np.zeros((500,500,3),dtype=np.uint8)
 
-    gen = GaussianTransformer(200, 1.5)
+    gen = GaussianTransformer(imgSize=200, enlargeSize=1.50, sigma=50)
     gen.gen_circle_mask()
     bbox = np.array([[[60, 140], [110, 160], [110, 260], [60, 230]], [[110, 165], [180, 165], [180, 255], [110, 255]]])
     bbox = bbox[np.newaxis, :, :,:]
-    region_image = gen.generate_region(image.shape, bbox)
+    region_image = gen.generate_region(image.shape, bbox).astype(np.uint8)
+    # import ipdb;ipdb.set_trace()
     region_image = cv2.applyColorMap(region_image, cv2.COLORMAP_JET)
     affinity_image, affinities = gen.generate_affinity(image.shape, bbox, [[1,2]])
+    affinity_image = affinity_image.astype(np.uint8)
     affinity_image = cv2.applyColorMap(affinity_image, cv2.COLORMAP_JET)
     target_bbox = np.array([[45, 135], [135, 135], [135, 295], [45, 295]], dtype=np.int8)
 
@@ -234,9 +237,9 @@ if __name__ == '__main__':
             # cv2.polylines(affinity_image, [enlarge], True, (0, 0, 255), 2)
 
     cv2.polylines(affinity_image, [affinities[0].astype(np.int)], True, (255, 0, 255), 2)
-
-    cv2.imshow('test', np.hstack((region_image, affinity_image)))
-    cv2.waitKey(0)
+    cv2.imwrite('/nas/home/gmuffiness/result/test_gaussian3.jpg', np.hstack((region_image, affinity_image)))
+    # cv2.imshow('test', np.hstack((region_image, affinity_image)))
+    # cv2.waitKey(0)
 
     # weight, target = gaussian.generate_target((1024, 1024, 3), bbox.copy())
     # target_gaussian_heatmap_color = imgproc.cvt2HeatmapImg(weight.copy() / 255)
