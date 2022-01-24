@@ -53,6 +53,9 @@ parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
+parser.add_argument('--neg_rto', default=3, type=int, help='negative pixel ratio')
+parser.add_argument('--enlargebox_mg', default=0.5, type=float, help='enlargebox_magine')
+
 #for test
 
 parser.add_argument('--trained_model', default='', type=str, help='pretrained model')
@@ -103,6 +106,7 @@ if __name__ == "__main__":
 
     utils.config.RESULT_DIR = args.results_dir
     utils.config.AUG = args.aug
+    utils.config.ENLARGEBOX_MAGINE = args.enlargebox_mg
 
     # 1. data load
     # 1-1. synthData load
@@ -216,7 +220,8 @@ if __name__ == "__main__":
                     output, _ = craft(images)
                     out1 = output[:, :, :, 0]
                     out2 = output[:, :, :, 1]
-                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
+                    # loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
+                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label, args.neg_rto)
             else:
                 output, _ = craft(images)
                 out1 = output[:, :, :, 0]

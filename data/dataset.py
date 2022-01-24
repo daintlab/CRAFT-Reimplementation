@@ -28,7 +28,7 @@ def saveInput(imagename, image, region_scores, affinity_scores, confidence_mask)
     image = np.uint8(image.copy())
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-    boxes, polys = craft_utils.getDetBoxes(region_scores / 255, affinity_scores / 255, 0.7, 0.4, 0.4, False)
+    boxes, polys = craft_utils.getDetBoxes(region_scores / 255, affinity_scores / 255, 0.85, 0.2, 0.5, False)
     boxes = np.array(boxes, np.int32) * 2
     if len(boxes) > 0:
         np.clip(boxes[:, :, 0], 0, image.shape[1])
@@ -623,7 +623,8 @@ class ICDAR2015(data.Dataset):
                                                                                                words[i],
                                                                                                viz=pursedo_viz,
                                                                                                imagename=new_imagename)
-
+                # confidence_mask에도 enlargebox 적용해주기 위해
+                word_bboxes[i] = enlargebox(word_bboxes[i], image.shape[0], image.shape[1])
 
                 confidences.append(confidence)
                 cv2.fillPoly(confidence_mask, [np.int32(word_bboxes[i])], (confidence))
