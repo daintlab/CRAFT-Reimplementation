@@ -75,7 +75,6 @@ def saveResult_2015(img_file, img, boxes, dirname='./result/', gt_file=None ):
         with open(os.path.join(gt_file, gt_name), 'r', encoding="utf8", errors='ignore') as d:
             for l in d.read().splitlines():
                 box = l.split(',')
-
                 box_gt = np.array(list(map(int, box[:8])))
                 gt_poly = box_gt.reshape(-1, 2)
                 gt_poly = np.array(gt_poly).astype(np.int32)
@@ -233,7 +232,6 @@ def main(model_path, args, evaluator, data_li=''):
             overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
             overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
 
-
             # save overlay
             filename, file_ext = os.path.splitext(os.path.basename(img_path))
             overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
@@ -260,7 +258,7 @@ def main(model_path, args, evaluator, data_li=''):
             temp1 = np.hstack([image, boxed_img])
             temp2 = np.hstack([overlay_region, overlay_aff])
             temp3 = np.vstack([temp1, temp2])
-
+            #
             cv2.imwrite(box_image_path, temp3)
         # # # --------------------------------------------------------------------------------------------------------#
 

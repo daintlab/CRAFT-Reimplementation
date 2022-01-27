@@ -19,7 +19,7 @@ from utils import config
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
 from data.imgaug import random_scale, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
-from watershed import watershed, watershed1,  watershed4, watershed_v2, watershed_v3
+from watershed import watershed, watershed1,  watershed4, watershed_v2, watershed_v3, watershed_v4
 from data.pointClockOrder import mep
 from utils import craft_utils
 
@@ -400,7 +400,7 @@ class ICDAR2015(data.Dataset):
             bgr_region_scores = cv2.resize(region_scores, (input.shape[1], input.shape[0]))
             bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
 
-            pursedo_bboxes, color_markers = watershed_v3(bgr_region_scores.copy(), input.copy(), viz=False)
+            pursedo_bboxes, color_markers = watershed_v4(bgr_region_scores.copy(), input.copy(), viz=False)
 
             if len(pursedo_bboxes) > 0:
 
@@ -663,6 +663,19 @@ class ICDAR2015(data.Dataset):
         if len(character_bboxes) > 0:
             region_scores = self.gen.generate_region(image.shape, character_bboxes)
             affinities_scores, affinity_bboxes = self.gen.generate_affinity(image.shape, character_bboxes, words)
+
+        # use official CRAFT model's output as teacher (to make pseudo-label)
+
+        # query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
+        # saved_region_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_region.jpg')
+        # saved_affi_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_affi.jpg')
+        # region_scores = cv2.imread(saved_region_scores_path, cv2.IMREAD_GRAYSCALE)
+        # affinities_scores = cv2.imread(saved_affi_scores_path, cv2.IMREAD_GRAYSCALE)
+        # affinity_bboxes = []
+        # region_scores = cv2.resize(region_scores, (image.shape[1], image.shape[0])).astype(np.float32)
+        # affinities_scores = cv2.resize(affinities_scores, (image.shape[1], image.shape[0])).astype(np.float32)
+        # # region_scores = cv2.cvtColor(region_scores, cv2.COLOR_BGR2GRAY)
+        # # affinities_scores = cv2.cvtColor(affinities_scores, cv2.COLOR_BGR2GRAY)
 
 
         rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]

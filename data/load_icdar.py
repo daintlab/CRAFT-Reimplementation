@@ -51,7 +51,7 @@ def load_synthtext_gt(data_folder, data_li):
 
 def load_icdar2015_gt(dataFolder, isTraing=False):
     if isTraing:
-        img_folderName = "icdar_c4_train_imgs"
+        img_folderName = "ch4_training_images"
         gt_folderName = "ch4_training_localization_transcription_gt"
     else:
         img_folderName = "ch4_test_images"

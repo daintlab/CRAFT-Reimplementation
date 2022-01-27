@@ -291,6 +291,111 @@ def watershed_v3(region_score, input_img, viz):
     return np.array(boxes), color_markers
 
 
+def watershed_v4(region_score, input_img, viz):
+
+    # if region_score.max() < 255 * 0.5:
+    #     return np.array([], dtype=np.uint8), np.zeros(region_score.shape, np.uint8)
+
+    ori_input_img = input_img.copy()
+    ori_region_score = region_score.copy()
+
+    if len(region_score.shape) == 3:
+        gray = cv2.cvtColor(region_score, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = region_score
+
+    ret, binary = cv2.threshold(gray, 0.2 * 255, 255, cv2.THRESH_BINARY)
+
+    # noise removal
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    opening = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=2)
+
+    # sure background area
+    sure_bg = opening
+
+    # Finding sure foreground area
+    ret, sure_fg = cv2.threshold(gray, 0.6 * 255, 255, 0)
+
+    # Finding unknown region
+    sure_fg = np.uint8(sure_fg)
+    sure_bg = np.uint8(sure_bg)
+    unknown = cv2.subtract(sure_bg, sure_fg)
+
+    # Marker labelling
+    ret, init_markers = cv2.connectedComponents(sure_fg)
+    # Add one to all labels so that sure background is not 0, but 1
+    init_markers = init_markers + 1
+    # Now, mark the region of unknown with zero
+    init_markers[unknown == 255] = 0
+    init_markers_copy = init_markers.copy()
+
+    ret, frame = cv2.threshold(gray, 0.4 * 255, 255, cv2.THRESH_OTSU)
+    frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+
+    final_markers = cv2.watershed(frame, init_markers)
+    region_score[final_markers == -1] = [255, 0, 0]
+
+    color_markers = np.uint8(final_markers + 1)
+    color_markers = color_markers / (color_markers.max() / 255)
+    color_markers = np.uint8(color_markers)
+    color_markers = cv2.applyColorMap(color_markers, cv2.COLORMAP_JET)
+
+    # make boxes
+    boxes = []
+    for i in range(2, np.max(final_markers) + 1):
+
+        # 변경 후 : make box without angle
+        try:
+            x_min, x_max = np.min(np.where(final_markers == i)[1]), np.max(np.where(final_markers == i)[1])
+            y_min, y_max = np.min(np.where(final_markers == i)[0]), np.max(np.where(final_markers == i)[0])
+            # print(x_min, x_max, y_min, y_max)
+            box = [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]]
+            # cv2.polylines(input_img, [np.array(box, dtype=np.int)], True, (0, 0, 255), 5)
+
+            box = np.array(box)
+            boxes.append(box)
+        except:
+            sure_bg_copy = cv2.cvtColor(sure_bg, cv2.COLOR_GRAY2RGB)
+            sure_fg_copy = cv2.cvtColor(sure_fg, cv2.COLOR_GRAY2RGB)
+            unknown_copy = cv2.cvtColor(unknown, cv2.COLOR_GRAY2RGB)
+
+            init_markers_copy = np.uint8(init_markers_copy + 1)
+            init_markers_copy = init_markers_copy / (init_markers_copy.max() / 255)
+            init_markers_copy = np.uint8(init_markers_copy)
+            init_markers_copy = cv2.applyColorMap(init_markers_copy, cv2.COLORMAP_JET)
+
+            region_score = cv2.applyColorMap(region_score, cv2.COLORMAP_JET)
+
+            vis_result = np.vstack(
+                [ori_input_img, ori_region_score, sure_bg_copy, sure_fg_copy, unknown_copy,
+                 init_markers_copy, frame,
+                 color_markers, region_score, input_img])
+            cv2.imwrite('./results_dir/exp_v2.2/watershed/{}'.format(f'watershed_result_{random.random()}.png'),
+                        vis_result)
+
+    #boxes = np.array(boxes) * 2
+    #boxes = sorted(boxes, key=lambda item: (item[0][0], item[0][1]))
+
+    if viz:
+        sure_bg_copy = cv2.cvtColor(sure_bg, cv2.COLOR_GRAY2RGB)
+        sure_fg_copy = cv2.cvtColor(sure_fg, cv2.COLOR_GRAY2RGB)
+        unknown_copy = cv2.cvtColor(unknown, cv2.COLOR_GRAY2RGB)
+
+        init_markers_copy = np.uint8(init_markers_copy + 1)
+        init_markers_copy = init_markers_copy / (init_markers_copy.max() / 255)
+        init_markers_copy = np.uint8(init_markers_copy)
+        init_markers_copy = cv2.applyColorMap(init_markers_copy, cv2.COLORMAP_JET)
+
+        region_score =  cv2.applyColorMap(region_score, cv2.COLORMAP_JET)
+
+        vis_result = np.vstack(
+            [ori_input_img, ori_region_score, sure_bg_copy, sure_fg_copy, unknown_copy, init_markers_copy, frame,
+             color_markers, region_score, input_img])
+        cv2.imwrite('./results_dir/exp_v5.1/watershed/{}'.format(f'watershed_result_{random.random()}.png'), vis_result)
+
+    # import ipdb; ipdb.set_trace()
+    return np.array(boxes), color_markers
+
 def watershed(image,region_score, viz):
     # new backtime code
 

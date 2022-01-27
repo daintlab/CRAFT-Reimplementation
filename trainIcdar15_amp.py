@@ -187,15 +187,14 @@ if __name__ == "__main__":
 
     while train_step < whole_training_step:
 
-        for index, (real_images, real_region_label, real_affi_label, real_confidence_mask, real_confidences) \
+        for batch_index, (real_images, real_region_label, real_affi_label, real_confidence_mask, real_confidences) \
                 in enumerate(real_data_loader):
+
             start_time = time.time()
             craft.train()
             if train_step>0 and train_step % args.lr_decay==0:
                 update_lr_rate_step += 1
                 training_lr = adjust_learning_rate(optimizer, args.gamma, update_lr_rate_step, args.lr)
-
-
 
             # syn image load
             syn_images, syn_region_label, syn_affi_label, syn_confidence_mask, _ = next(batch_syn)

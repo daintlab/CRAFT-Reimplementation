@@ -215,16 +215,13 @@ if __name__ == '__main__':
     # gaussian.saveGaussianHeat()
     image = np.zeros((500,500,3),dtype=np.uint8)
 
-    gen = GaussianTransformer(imgSize=200, enlargeSize=1.50, sigma=50)
+    gen = GaussianTransformer(imgSize=200, enlargeSize=1.50)
     gen.gen_circle_mask()
-    bbox = np.array([[[60, 140], [110, 160], [110, 260], [60, 230]], [[110, 165], [180, 165], [180, 255], [110, 255]], [[167, 164],
+    bbox = np.array([[[60, 140], [90, 160], [90, 260], [60, 230]], [[110, 165], [180, 165], [180, 255], [110, 255]], [[167, 164],
        [259, 154],
        [262, 178],
        [168, 188]]])
-    bbox = np.array([[[168, 165],
-       [229, 158],
-       [231, 174],
-       [169, 181]]])
+
     bbox = bbox[np.newaxis, :, :,:]
     region_image = gen.generate_region(image.shape, bbox).astype(np.uint8)
     # import ipdb;ipdb.set_trace()
@@ -244,7 +241,7 @@ if __name__ == '__main__':
             # cv2.polylines(affinity_image, [enlarge], True, (0, 0, 255), 2)
 
     cv2.polylines(affinity_image, [affinities[0].astype(np.int)], True, (255, 0, 255), 2)
-    cv2.imwrite('/nas/home/gmuffiness/result/test_gaussian3.jpg', np.hstack((region_image, affinity_image)))
+    cv2.imwrite('/nas/home/gmuffiness/result/test_gaussian_y_1.25.jpg', np.hstack((region_image, affinity_image)))
     # cv2.imshow('test', np.hstack((region_image, affinity_image)))
     # cv2.waitKey(0)
 
