@@ -52,7 +52,7 @@ def saveResult_2015(img_file, img, boxes, dirname='./result/', gt_file=None ):
         None
     """
 
-
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     img = np.array(img)
 
     # make result file list
@@ -101,6 +101,7 @@ def saveResult_2013(img_file, img, boxes, dirname='./result/', gt_file=None):
     Return:
         None
     """
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     img = np.array(img)
 
     # make result file list
@@ -192,56 +193,6 @@ def main(model_path, args, evaluator, data_li=''):
                                              args.canvas_size,
                                              args.mag_ratio)
 
-        # # # # -------------------------------------------------------------------------------------------------------#
-
-        # if test_folder.split('/')[-1].lower() == 'icdar2013':
-        #     rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
-        #                 105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
-        #
-        # else:
-        #     rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
-        #                 399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
-        #
-        #
-        # viz = True
-        # if k in rnd_list:
-        #    viz = True
-        #
-        # if viz == True:
-        #
-        #     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        #     outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
-        #     if not os.path.exists(outpath):
-        #         os.makedirs(outpath)
-        #
-        #     if test_folder.split('/')[-1].lower() == 'icdar2013':
-        #         saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-        #     else:
-        #         saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-        #
-        #
-        #
-        #     height, width, channel = image.shape
-        #     overlay_region = cv2.resize(score_text[0], (width, height))
-        #     overlay_aff = cv2.resize(score_text[1], (width, height))
-        #
-        #     overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
-        #     overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
-        #
-        #
-        #     # save overlay
-        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
-        #     overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
-        #     cv2.imwrite(overlay_region_file, overlay_region)
-        #
-        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
-        #     overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
-        #     cv2.imwrite(overlay_aff_file, overlay_aff)
-        #
-        #     ori_image_path = outpath + "/res_" + filename + '.jpg'
-        #     cv2.imwrite(ori_image_path,image)
-
-        # # # --------------------------------------------------------------------------------------------------------#
 
         for box in bboxes:
             box_info = {"points": None, "text": None, "ignore": None}
@@ -250,6 +201,80 @@ def main(model_path, args, evaluator, data_li=''):
             box_info["ignore"] = False
             single_img_bbox.append(box_info)
         total_img_bboxes_pre.append(single_img_bbox)
+
+
+
+        # # # # # -------------------------------------------------------------------------------------------------------#
+
+        if test_folder.split('/')[-1].lower() == 'icdar2013':
+            rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
+                        105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
+
+        else:
+            rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
+                        399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
+
+
+        viz = True
+        if k in rnd_list:
+           viz = True
+
+        if viz == True:
+
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            outpath = os.path.join(os.path.join(args.results_dir, "test_output"), str(utils.config.ITER))
+            if not os.path.exists(outpath):
+                os.makedirs(outpath)
+
+            if test_folder.split('/')[-1].lower() == 'icdar2013':
+                saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+            else:
+                saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+
+
+
+            height, width, channel = image.shape
+            overlay_region = cv2.resize(score_text[0], (width, height))
+            overlay_aff = cv2.resize(score_text[1], (width, height))
+
+            overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
+            overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
+
+
+            # save overlay
+            filename, file_ext = os.path.splitext(os.path.basename(img_path))
+            #overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
+            #cv2.imwrite(overlay_region_file, overlay_region)
+
+            #overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
+            #cv2.imwrite(overlay_aff_file, overlay_aff)
+
+            # for box in bboxes:
+            #     cv2.polylines(image, [np.reshape(box.astype('int32'), (-1, 1, 2))], True, (191, 255, 0),3)
+
+            #ori_image_path = outpath + "/res_" + filename + '.jpg'
+            #cv2.imwrite(ori_image_path,image)
+
+
+            boxed_img = image.copy()
+            for word_box in single_img_bbox:
+                cv2.polylines(boxed_img, [word_box['points'].astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=3)
+
+            box_image_path = outpath + "/res_" + filename + '_box.jpg'
+
+            temp1 = np.hstack([image, boxed_img])
+            temp2 = np.hstack([overlay_region, overlay_aff])
+            temp3 = np.vstack([temp1, temp2])
+
+            cv2.imwrite(box_image_path, temp3)
+
+        # # # # --------------------------------------------------------------------------------------------------------#
+
+
+
+
+
+
     results = []
     for gt, pred in zip(total_imgs_bboxes_gt, total_img_bboxes_pre):
         results.append(evaluator.evaluate_image(gt, pred))

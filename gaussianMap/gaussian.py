@@ -53,24 +53,24 @@ class GaussianTransformer(object):
 
     # 将原始的box扩大1.5倍
     # 仅仅作用于正矩形，不规则四边形无效， 请参考data/boEnlarge文件
-    def enlargeBox(self, box, imgh, imgw):
-        boxw = box[1][0] - box[0][0]
-        boxh = box[2][1] - box[1][1]
-
-        if imgh <= boxh or imgw <= boxw:
-            return box
-
-        enlargew = boxw * 0.5
-        enlargeh = boxh * 0.5
-
-        # box扩大这部分为了清晰，code写的比较冗余
-        # 左上角顶点扩充后坐标， 剩下点顺时针以此类推
-        box[0][0], box[0][1] = max(0, box[0][0] - int(enlargew*0.5)), max(0, box[0][1] - int(enlargeh*0.5))
-        box[1][0], box[1][1] = min(imgw, box[1][0] + int(enlargew*0.5)), max(0, box[1][1] - int(enlargeh*0.5))
-        box[2][0], box[2][1] = min(imgw, box[2][0] + int(enlargew*0.5)), min(imgh, box[2][1] + int(enlargeh*0.5))
-        box[3][0], box[3][1] = max(0, box[3][0] - int(enlargew*0.5)), min(imgh, box[3][1] + int(enlargeh*0.5))
-
-        return box
+    # def enlargeBox(self, box, imgh, imgw):
+    #     boxw = box[1][0] - box[0][0]
+    #     boxh = box[2][1] - box[1][1]
+    #
+    #     if imgh <= boxh or imgw <= boxw:
+    #         return box
+    #
+    #     enlargew = boxw * 0.5
+    #     enlargeh = boxh * 0.5
+    #
+    #     # box扩大这部分为了清晰，code写的比较冗余
+    #     # 左上角顶点扩充后坐标， 剩下点顺时针以此类推
+    #     box[0][0], box[0][1] = max(0, box[0][0] - int(enlargew*0.5)), max(0, box[0][1] - int(enlargeh*0.5))
+    #     box[1][0], box[1][1] = min(imgw, box[1][0] + int(enlargew*0.5)), max(0, box[1][1] - int(enlargeh*0.5))
+    #     box[2][0], box[2][1] = min(imgw, box[2][0] + int(enlargew*0.5)), min(imgh, box[2][1] + int(enlargeh*0.5))
+    #     box[3][0], box[3][1] = max(0, box[3][0] - int(enlargew*0.5)), min(imgh, box[3][1] + int(enlargeh*0.5))
+    #
+    #     return box
 
     def four_point_transform(self, target_bbox, save_dir=None):
         """
@@ -101,7 +101,7 @@ class GaussianTransformer(object):
 
         return warped, width, height
 
-    def add_character(self, image, bbox, signal = None):
+    def add_character(self, image, bbox, signal = None, confidence_mask='', confidence=''):
 
         """
         mapping Gaussian heat maps to the character box coordinates of the image.
@@ -110,10 +110,13 @@ class GaussianTransformer(object):
         :return:
         """
 
+        if confidence_mask != '':
+            height, width = image.shape
+            target_single_trans = np.zeros([height, width], dtype=np.float32)
 
-        #bbox = self.enlargeBox(bbox, image.shape[0], image.shape[1])
+
         bbox_copy = bbox.copy()
-        bbox = enlargebox(bbox, image.shape[0], image.shape[1])
+        bbox = enlargebox(bbox, image.shape[0], image.shape[1], self.enlargeSize)
 
         if signal == "affinity":
             bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = \
@@ -127,8 +130,11 @@ class GaussianTransformer(object):
         transformed, width, height = self.four_point_transform(bbox.astype(np.float32))
 
 
+
+
         # if width * height < 10:
         #     return image
+
 
         try:
             score_map = image[top_left[1]:top_left[1] + transformed.shape[0],
@@ -137,7 +143,27 @@ class GaussianTransformer(object):
             image[top_left[1]:top_left[1] + transformed.shape[0],
             top_left[0]:top_left[0] + transformed.shape[1]] = score_map
 
+            # ---------------------------------------------------------------------#
+            if confidence_mask != "":
+                score_map_single = target_single_trans[top_left[1]:top_left[1] + transformed.shape[0],
+                        top_left[0]:top_left[0] + transformed.shape[1]]
+                score_map_single = np.where(transformed > score_map_single, transformed, score_map_single)
+                target_single_trans[top_left[1]:top_left[1] + transformed.shape[0],
+                top_left[0]:top_left[0] + transformed.shape[1]] = score_map_single
 
+
+                ret, th = cv2.threshold(target_single_trans.copy().astype('uint8'), 255 * 0.1, 255, cv2.THRESH_BINARY)
+                contours, hierarchy = cv2.findContours(th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+                contr = contours[0]
+
+                # 최소한의 사각형 표시
+                rect = cv2.minAreaRect(contr)
+                box = cv2.boxPoints(rect)  # 중심점과 각도를 4개의 꼭지점 좌표로 변환
+                box = np.int0(box)  # 정수로 변환
+
+                cv2.fillPoly(confidence_mask, [box], (confidence))
+                # ---------------------------------------------------------------------#
 
         except Exception as e:
             # print('tansformed shape:{}\n image top_left shape:{}\n top transformed shape:{}\n width and hright:{}
@@ -151,7 +177,10 @@ class GaussianTransformer(object):
             # import ipdb;ipdb.set_trace()
             print('second filter {} {} {}'.format(width,height,signal))
             print('error message {}'.format(e))
+
+
         return image
+
 
     def add_affinity(self, image, bbox_1, bbox_2):
         center_1, center_2 = np.mean(bbox_1, axis=0), np.mean(bbox_2, axis=0)
@@ -170,16 +199,31 @@ class GaussianTransformer(object):
 
         return self.add_character(image, affinity.copy(), signal='affinity'), np.expand_dims(affinity, axis=0)
 
-    def generate_region(self, image_size, bboxes, signal='none'):
-        height, width, channel = image_size
+    def generate_region(self, image_size, bboxes, signal='none', confidence_mask='', confidence=''):
+
+
+        if len(image_size) != 3:
+            height, width  = image_size
+        else:
+            height, width, channel = image_size
+
         target = np.zeros([height, width], dtype=np.float32)
         for i in range(len(bboxes)):
             character_bbox = np.array(bboxes[i])
             for j in range(bboxes[i].shape[0]):
-                #target = self.add_character(target, character_bbox[j], singal='region')
-                target = self.add_character(target, character_bbox[j], signal=signal)
+
+                if confidence_mask !='':
+                    target = self.add_character(target, character_bbox[j], signal=signal,
+                                                confidence_mask=confidence_mask,confidence=confidence[i])
+
+                else:
+                    target = self.add_character(target, character_bbox[j], signal=signal)
+
 
         return target
+
+
+
 
     def saveGaussianHeat(self):
         images_folder = os.path.abspath(os.path.dirname(__file__)) + '/images'

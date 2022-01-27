@@ -54,8 +54,8 @@ parser.add_argument('--num_workers', default=0, type=int,
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
 parser.add_argument('--neg_rto', default=3, type=int, help='negative pixel ratio')
-parser.add_argument('--enlargebox_mg', default=0.75, type=float, help='enlargebox_magine')
-
+parser.add_argument('--enlargeSize', default=0.75, type=float, help='enlargebox size')
+parser.add_argument('--rnd_crop', default='rnd_back', type=str, help='random crop version')
 
 
 #for test
@@ -109,14 +109,12 @@ if __name__ == "__main__":
     # CONFIG
     utils.config.RESULT_DIR = args.results_dir
     utils.config.AUG = args.aug
-    utils.config.ENLARGEBOX_MAGINE = args.enlargebox_mg
-
-
+    utils.config.ICDAR_BATCH = args.icdar_batch
 
     # 1. data load
     # 1-1. synthData load
     synthData_dir = {"synthtext": args.synthData_dir}
-    synthDataLoader = SynthTextDataLoader(target_size=768, data_dir_list=synthData_dir, mode='total')
+    synthDataLoader = SynthTextDataLoader(args, target_size=768, data_dir_list=synthData_dir, mode='total')
 
     train_syn_loder = torch.utils.data.DataLoader(
         synthDataLoader,
@@ -142,7 +140,7 @@ if __name__ == "__main__":
 
     #print('init model last parameters :{}'.format(craft.module.conv_cls[-1].weight.reshape(2, -1)))
 
-    realdata = ICDAR2015(craft, args.icdar2015_dir, target_size=768, viz=False)
+    realdata = ICDAR2015(args, craft, args.icdar2015_dir, target_size=768, viz=False)
     real_data_loader = torch.utils.data.DataLoader(
         realdata,
         batch_size=args.icdar_batch,
@@ -161,8 +159,8 @@ if __name__ == "__main__":
         args.lr = net_param['optimizer']['param_groups'][0]['lr']
 
 
-    #criterion = Maploss_v2()
-    criterion = Maploss()
+    criterion = Maploss_v2()
+    #criterion = Maploss()
 
     # mixed precision
     if args.amp :
@@ -226,10 +224,10 @@ if __name__ == "__main__":
                     output, _ = craft(images)
                     out1 = output[:, :, :, 0]
                     out2 = output[:, :, :, 1]
-                    # loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label,
-                    #                  args.neg_rto)
+                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label,
+                                     args.neg_rto)
 
-                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
+                    #loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
 
 
 

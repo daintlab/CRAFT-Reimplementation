@@ -32,6 +32,9 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, c
     score_text = y[0,:,:,0].cpu().data.numpy()
     score_link = y[0,:,:,1].cpu().data.numpy()
 
+
+
+
     # Post-processing
     boxes, polys = craft_utils.getDetBoxes(score_text, score_link, text_threshold, link_threshold, low_text, poly)
 

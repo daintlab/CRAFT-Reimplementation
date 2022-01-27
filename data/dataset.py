@@ -18,11 +18,14 @@ from utils import config
 
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
-from data.imgaug import random_scale, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
-from watershed import watershed, watershed_jm, watershed_dj
+from data.imgaug import random_scale, random_resize_crop, \
+    random_crop_back, random_crop_v2, random_horizontal_flip, random_rotate
+from watershed import watershed, watershed_jm, watershed_jm1, watershed_v3
 
 from data.pointClockOrder import mep
 from utils import craft_utils
+
+
 
 
 def saveInput(imagename, image, region_scores, affinity_scores, confidence_mask):
@@ -50,13 +53,17 @@ def saveInput(imagename, image, region_scores, affinity_scores, confidence_mask)
     overlay_aff = cv2.addWeighted(image, 0.4, overlay_aff, 0.7, 6)
 
     gt_scores = np.concatenate([overlay_region, overlay_aff], axis=1)
-    confidence_mask_gray = np.concatenate([np.zeros_like(confidence_mask_gray), confidence_mask_gray], axis=1)
+
+
+    #
+    overlay_gauss = cv2.addWeighted(overlay_region, 0.4, confidence_mask_gray, 0.6, 5)
+    confidence_mask_gray = np.concatenate([overlay_gauss, confidence_mask_gray], axis=1)
 
     output = np.concatenate([gt_scores, confidence_mask_gray], axis=1)
 
     output = np.hstack([image, output])
 
-    outpath = os.path.join(os.path.join(config.RESULT_DIR, '{}/input'.format(str(config.ITER // 100))),
+    outpath = os.path.join(os.path.join(config.RESULT_DIR, '{}/input'.format(str(config.ITER // 50))),
                            "%s_input.jpg" % imagename)
     #print(outpath)
     if not os.path.exists(os.path.dirname(outpath)):
@@ -91,7 +98,7 @@ def saveImage(imagename, image, bboxes, affinity_bboxes, region_scores, affinity
     heat_map = np.concatenate([overlay_region, overlay_aff], axis=1)
     output = np.concatenate([output_image, heat_map, confidence_mask_gray], axis=1)
 
-    outpath = os.path.join(os.path.join(config.RESULT_DIR, '{}/input'.format(str(config.ITER // 100))), imagename)
+    outpath = os.path.join(os.path.join(config.RESULT_DIR, '{}/input'.format(str(config.ITER // 50))), imagename)
     #print(outpath)
     if not os.path.exists(os.path.dirname(outpath)):
         os.makedirs(os.path.dirname(outpath))
@@ -101,15 +108,20 @@ def saveImage(imagename, image, bboxes, affinity_bboxes, region_scores, affinity
 
 
 class SynthTextDataLoader(data.Dataset):
-    def __init__(self, target_size=768, data_dir_list={"synthtext":"datapath"}, viz=False, mode=''):
+    def __init__(self, args, target_size=768, data_dir_list={"synthtext":"datapath"}, viz=False, mode=''):
         assert 'synthtext' in data_dir_list.keys()
+
+
+        self.enlargeSize = args.enlargeSize
+        self.rnd_crop = args.rnd_crop
 
         self.target_size = target_size
         self.data_dir_list = data_dir_list
         self.viz = viz
         self.charbox, self.image, self.imgtxt = self.load_synthtext(mode)
-        self.gen = GaussianTransformer(200, 1.5)
+        self.gen = GaussianTransformer(imgSize=200, enlargeSize=self.enlargeSize)
         # self.gen.gen_circle_mask()
+
 
 
     def choice_train_test_split(self,X, test_size=0.1, shuffle=True, random_state=1004):
@@ -134,7 +146,7 @@ class SynthTextDataLoader(data.Dataset):
 
 
     def load_synthtext(self, mode):
-
+        #import ipdb;ipdb.set_trace()
         gt = scio.loadmat(os.path.join(self.data_dir_list["synthtext"], 'gt.mat'))
         wordbox = gt['wordBB'][0]
         charbox = gt['charBB'][0]
@@ -214,7 +226,7 @@ class SynthTextDataLoader(data.Dataset):
 
 
         if len(character_bboxes) > 0:
-            region_scores = self.gen.generate_region(image.shape, character_bboxes, img_path)
+            region_scores = self.gen.generate_region(image.shape, character_bboxes, signal=img_path)
             affinities_scores, affinity_bboxes = self.gen.generate_affinity(image.shape, character_bboxes, words)
 
 
@@ -228,9 +240,20 @@ class SynthTextDataLoader(data.Dataset):
                            confidence_mask)
 
 
-        random_transforms = [image, region_scores, affinities_scores, confidence_mask*255]
+        #random crop
+        if self.rnd_crop == 'rnd_back':
+            random_transforms = [image, region_scores, affinities_scores, confidence_mask * 255]
+            random_transforms = random_crop_back(random_transforms, (self.target_size, self.target_size),character_bboxes)
+        elif self.rnd_crop == 'rnd_v2':
+            random_transforms = [image, region_scores, affinities_scores, confidence_mask * 255]
+            random_transforms = random_crop_v2(random_transforms, (self.target_size, self.target_size),character_bboxes)
+        elif self.rnd_crop == 'rnd_v3':
+            random_transforms = random_resize_crop(image, region_scores, affinities_scores, confidence_mask, size=768)
+        else:
+            import ipdb;ipdb.set_trace()
 
-        random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
+
+
         if config.AUG == True:
 
             random_transforms = random_horizontal_flip(random_transforms)
@@ -251,7 +274,7 @@ class SynthTextDataLoader(data.Dataset):
 
 
         image = Image.fromarray(image)
-
+        image.convert('RGB')
 
         if config.AUG == True:
             image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
@@ -277,13 +300,18 @@ class SynthTextDataLoader(data.Dataset):
 
 
 class ICDAR2015(data.Dataset):
-    def __init__(self, net, icdar2015_folder, target_size=768, viz=False, sigma=40):
+    def __init__(self, args, net, icdar2015_folder, target_size=768, viz=False):
+
+
+        self.enlargeSize = args.enlargeSize
+        self.rnd_crop = args.rnd_crop
 
         self.net = net
         self.net.eval()
 
         self.target_size = target_size
-        self.gen = GaussianTransformer(200, 1.5, sigma=sigma)
+        self.gen = GaussianTransformer(imgSize=200, enlargeSize=self.enlargeSize)
+
 
         self.img_folder = os.path.join(icdar2015_folder, 'ch4_training_images')
         self.gt_folder = os.path.join(icdar2015_folder, 'ch4_training_localization_transcription_gt')
@@ -398,21 +426,15 @@ class ICDAR2015(data.Dataset):
             region_scores = scores[0, :, :, 0].cpu().data.numpy()
             region_scores = np.uint8(np.clip(region_scores, 0, 1) * 255)
             bgr_region_scores = cv2.resize(region_scores, (input.shape[1], input.shape[0]))
-
-            ###
-            #cv2.imwrite(os.path.join(utils.config.RESULT_DIR, '{}_{}'.format(imagename, 'region_score.jpg')), bgr_region_scores)
-
             bgr_region_scores = cv2.cvtColor(bgr_region_scores, cv2.COLOR_GRAY2RGB)
-
-
-            ###
-            #ori = cv2.cvtColor(input_copy, cv2.COLOR_BGR2RGB)
-            #cv2.imwrite(os.path.join(utils.config.RESULT_DIR, '{}_{}'.format(imagename, 'ori.jpg')), ori)
 
 
             #viz = True
             #pursedo_bboxes, color_markers = watershed(input.copy(), bgr_region_scores.copy(), viz=False)
-            pursedo_bboxes, color_markers = watershed_jm(bgr_region_scores, viz=False)
+            pursedo_bboxes, color_markers = watershed_jm1(bgr_region_scores.copy())
+
+            #pursedo_bboxes, color_markers = watershed_v3(bgr_region_scores.copy(), input.copy(), viz=False)
+
 
 
             if len(pursedo_bboxes) > 0:
@@ -430,31 +452,6 @@ class ICDAR2015(data.Dataset):
                 else:
                     print("filter bboxes", pursedo_bboxes[i]) # 작은 box들
 
-                # check small box 2
-                # import ipdb;ipdb.set_trace()
-                #
-                # poly = plg.Polygon(pursedo_bboxes[i])
-                # area = poly.area()
-                # if area < 10:
-                #     continue
-                # _tmp.append(pursedo_bboxes[i])
-                #
-                #
-                #
-                #
-                #
-                # pursedo_bboxes_ = pursedo_bboxes[i].copy()
-                # top_left = np.array([np.min(pursedo_bboxes[i][:, 0]), np.min(pursedo_bboxes[i][:, 1])]).astype(np.int32)
-                # pursedo_bboxes_ -= top_left[None, :]
-                #
-                # width, height = np.max(pursedo_bboxes_[:, 0]).astype(np.int32), np.max(
-                #     pursedo_bboxes_[:, 1]).astype(np.int32)
-                #
-                # if width >0 or height >0:
-                #     _tmp.append(pursedo_bboxes[i])
-                # else:
-                #     import ipdb;ipdb.set_trace()
-                #     print("filter bboxes", pursedo_bboxes[i])  # 작은 box들
 
 
 
@@ -485,50 +482,11 @@ class ICDAR2015(data.Dataset):
                 confidence = 0.5
 
             else:
-                bboxes = pursedo_bboxes
+                bboxes = pursedo_bboxes.copy()
 
-            #viz = True
-            if viz == True:
-
-               # -----------------------------------------------------------------------------------------------#
-
-                input_copy1 = input_copy.copy()
-                _purs_bboxes = np.int32(pursedo_bboxes.copy())
-                if len(_purs_bboxes) > 0:
-                    _purs_bboxes[:, :, 0] = np.clip(_purs_bboxes[:, :, 0], 0, input.shape[1])
-                    _purs_bboxes[:, :, 1] = np.clip(_purs_bboxes[:, :, 1], 0, input.shape[0])
-                    for bbox_p in _purs_bboxes:
-                        cv2.polylines(np.uint8(input_copy1), [np.reshape(bbox_p, (-1, 1, 2))], True, (255, 0, 0))
-
-                input_copy2 = input_copy.copy()
-                _tmp_bboxes = np.int32(bboxes.copy())
-                _tmp_bboxes[:, :, 0] = np.clip(_tmp_bboxes[:, :, 0], 0, input.shape[1])
-                _tmp_bboxes[:, :, 1] = np.clip(_tmp_bboxes[:, :, 1], 0, input.shape[0])
-                for bbox in _tmp_bboxes:
-                    cv2.polylines(np.uint8(input_copy2), [np.reshape(bbox, (-1, 1, 2))], True, (255, 0, 0))
-
-                region_scores_color = cv2.applyColorMap(np.uint8(region_scores), cv2.COLORMAP_JET)
-                region_scores_color = cv2.resize(region_scores_color, (input.shape[1], input.shape[0]))
-
-                #gaussian
-
-                target = self.gen.generate_region(region_scores_color.shape, [_tmp_bboxes])
-                target_color = cv2.applyColorMap(target.astype('uint8'), cv2.COLORMAP_JET)
+            psudo_bbox = bboxes.copy()
 
 
-                # ori img , region score, watershed, box img
-                viz_image = np.hstack([input_copy[:, :, ::-1], region_scores_color,color_markers,
-                                       input_copy1[:, :, ::-1],input_copy2[:, :, ::-1], target_color])
-
-
-                save_path = os.path.join(config.RESULT_DIR, str(config.ITER//(1000//config.ICDAR_BATCH)))
-                if not os.path.exists(os.path.dirname(save_path)):
-                    os.makedirs(os.path.dirname(save_path))
-                cv2.imwrite(os.path.join(save_path, '{}_{}'.format(imagename, 'hstack.jpg')), viz_image)
-
-                viz=False
-
-                # -----------------------------------------------------------------------------------------------#
 
             bboxes /= scale
 
@@ -544,38 +502,57 @@ class ICDAR2015(data.Dataset):
                 print(e)
 
 
+            if viz == True:
 
-            bb1 = bboxes.copy()
+               # -----------------------------------------------------------------------------------------------#
+
+                # character box
+                input_copy1 = input_copy.copy()
+                _purs_bboxes = np.int32(pursedo_bboxes.copy())
+                if len(_purs_bboxes) > 0:
+                    _purs_bboxes[:, :, 0] = np.clip(_purs_bboxes[:, :, 0], 0, input.shape[1])
+                    _purs_bboxes[:, :, 1] = np.clip(_purs_bboxes[:, :, 1], 0, input.shape[0])
+                    for bbox_p in _purs_bboxes:
+                        cv2.polylines(np.uint8(input_copy1), [np.reshape(bbox_p, (-1, 1, 2))], True, (255, 0, 0))
+
+               # character box after confidence
+                input_copy2 = input_copy.copy()
+                _tmp_bboxes = np.int32(psudo_bbox.copy())
+                _tmp_bboxes[:, :, 0] = np.clip(_tmp_bboxes[:, :, 0], 0, input.shape[1])
+                _tmp_bboxes[:, :, 1] = np.clip(_tmp_bboxes[:, :, 1], 0, input.shape[0])
+                for bbox in _tmp_bboxes:
+                    cv2.polylines(np.uint8(input_copy2), [np.reshape(bbox, (-1, 1, 2))], True, (255, 0, 0))
+
+                region_scores_color = cv2.applyColorMap(np.uint8(region_scores), cv2.COLORMAP_JET)
+                region_scores_color = cv2.resize(region_scores_color, (input.shape[1], input.shape[0]))
+
+
+
+                #gaussian
+                target = self.gen.generate_region(image.shape, [bboxes])
+                target_bbox, _ = self.crop_image_by_bbox(target, word_bbox)
+                target_bbox = cv2.resize(target_bbox, None, fx=scale, fy=scale)
+                target_color = cv2.applyColorMap(target_bbox.astype('uint8'), cv2.COLORMAP_JET)
+
+
+
+
+                # ori img , region score, watershed, box img
+                viz_image = np.hstack([input_copy[:, :, ::-1], region_scores_color, color_markers,
+                                       input_copy1[:, :, ::-1],input_copy2[:, :, ::-1], target_color])
+
+
+                save_path = os.path.join(config.RESULT_DIR, str(config.ITER//(1000//config.ICDAR_BATCH)))
+                if not os.path.exists(os.path.dirname(save_path)):
+                    os.makedirs(os.path.dirname(save_path))
+                cv2.imwrite(os.path.join(save_path, '{}_{}'.format(imagename, 'hstack.jpg')), viz_image)
+
+                # -----------------------------------------------------------------------------------------------#
 
 
             if len(bboxes) > 0:
                 bboxes[:, :, 1] = np.clip(bboxes[:, :, 1], 0, image.shape[0])
                 bboxes[:, :, 0] = np.clip(bboxes[:, :, 0], 0, image.shape[1])
-
-
-            # for cb in bboxes:
-            #     # if (cb < 0).astype('float32').sum() > 0:
-            #     #     import ipdb;
-            #
-            #     #check 1
-            #     poly = plg.Polygon(cb)
-            #     area = poly.area()
-            #     if area < 10:
-            #         import ipdb;ipdb.set_trace()
-            #
-            #     # check 2
-            #     pursedo_bboxes_ = cb.copy()
-            #     top_left = np.array([np.min(pursedo_bboxes[:, 0]), np.min(pursedo_bboxes[:, 1])]).astype(np.int32)
-            #     pursedo_bboxes_ -= top_left[None, :]
-            #
-            #     width, height = np.max(pursedo_bboxes_[:, 0]).astype(np.int32), np.max(
-            #         pursedo_bboxes_[:, 1]).astype(np.int32)
-            #
-            #     if width >0 or height >0:
-            #         pass
-            #     else:
-            #         import ipdb;ipdb.set_trace()
-            #         print("filter bboxes", pursedo_bboxes[i])  # 작은 box들
 
 
 
@@ -650,17 +627,22 @@ class ICDAR2015(data.Dataset):
 
 
     def pull_item(self, index):
-        image, character_bboxes, words, confidence_mask, confidences  = self.load_image_gt_and_confidencemask(index)
+        image, character_bboxes, words, confidence_mask, confidences = self.load_image_gt_and_confidencemask(index)
+
+        if len(confidences) == 0:
+            confidences = 1.0
+        else:
+            confidences = np.array(confidences).mean()
+
+        # if len(confidences) == 0:
+        #     confidences = [1.0 for i in range(len(character_bboxes))]
 
         #check minus coordinate
 
         for cb in character_bboxes :
             if (cb < 0).astype('float32').sum() > 0 :
                 import ipdb;ipdb.set_trace()
-        if len(confidences) == 0:
-            confidences = 1.0
-        else:
-            confidences = np.array(confidences).mean()
+
 
 
         region_scores = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
@@ -668,10 +650,13 @@ class ICDAR2015(data.Dataset):
 
         if len(character_bboxes) > 0:
             region_scores = self.gen.generate_region(image.shape, character_bboxes)
+
             affinities_scores, affinity_bboxes = self.gen.generate_affinity(image.shape, character_bboxes, words)
 
 
         rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
+
+
 
         if int(self.get_imagename(index).split('.')[0].split('_')[1]) in rnd_list and \
                 self.get_imagename(index).split('_')[0] == 'img':
@@ -682,13 +667,18 @@ class ICDAR2015(data.Dataset):
                       region_scores.copy(),affinities_scores.copy(),confidence_mask.copy())
 
 
-        random_transforms = [image, region_scores, affinities_scores, confidence_mask*255]
-        # randomcrop = eastrandomcropdata((768,768))
-        # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
 
-
-        random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-
+        #random crop
+        if self.rnd_crop == 'rnd_back':
+            random_transforms = [image, region_scores, affinities_scores, confidence_mask * 255]
+            random_transforms = random_crop_back(random_transforms, (self.target_size, self.target_size),character_bboxes)
+        elif self.rnd_crop == 'rnd_v2':
+            random_transforms = [image, region_scores, affinities_scores, confidence_mask * 255]
+            random_transforms = random_crop_v2(random_transforms, (self.target_size, self.target_size),character_bboxes)
+        elif self.rnd_crop == 'rnd_v3':
+            random_transforms = random_resize_crop(image, region_scores, affinities_scores, confidence_mask, size=768)
+        else:
+            import ipdb;ipdb.set_trace()
 
 
 
@@ -704,13 +694,18 @@ class ICDAR2015(data.Dataset):
 
 
 
-
-
         if self.viz:
             saveInput(self.get_imagename(index), image.copy(), region_image.copy(),
                       affinity_image.copy(), confidence_mask.copy())
+        #cv2.imwrite('/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/0118_exp/0118_delte/test.jpg', image)
+
 
         image = Image.fromarray(image)
+        image.convert('RGB')
+
+
+        #image.save('/nas/home/jihyokim/jm/CRAFT-new-backtime92/exp/0118_exp/0118_delte/test1.jpg')
+
 
         if config.AUG == True:
             image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
@@ -725,6 +720,11 @@ class ICDAR2015(data.Dataset):
         confidence_mask = confidence_mask.astype(np.float32) /255
 
         self.viz = False
+        # if self.get_imagename(index) == 'img_704.jpg':
+        #     print(self.get_imagename(index))
+        #     import ipdb;ipdb.set_trace()
+
+
 
 
         return image, region_image, affinity_image, confidence_mask, confidences
@@ -788,7 +788,7 @@ if __name__ == "__main__":
         # region_image, affinity_image, character_bboxes = randomCrop(region_image, affinity_image, character_bboxes)
 
 
-        random_transforms = random_crop_v2(random_transforms, (768, 768), character_bboxes)
+        random_transforms = random_crop(random_transforms, (768, 768), character_bboxes)
         image, region_image, affinity_image, confidence_mask = random_transforms
         region_image = cv2.applyColorMap(region_image, cv2.COLORMAP_JET)
         affinity_image = cv2.applyColorMap(affinity_image, cv2.COLORMAP_JET)

@@ -92,7 +92,6 @@ class Maploss_v2(nn.Module):
             negative_loss = torch.sum(torch.topk(negative_loss_region, 500)[0]) / 500
 
 
-
         total_loss = positive_loss + negative_loss
         return total_loss
 
