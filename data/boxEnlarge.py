@@ -279,9 +279,9 @@ def enlargebox(box, h, w):
     Y = K1 * X + B1
     center = [X, Y]
 
-    x1, y1 = sidePoint_v1(Apoint, center, h, w, 'leftTop')
-    x2, y2 = sidePoint_v1(center, Bpoint, h, w, 'rightTop')
-    x3, y3 = sidePoint_v1(center, Cpoint, h, w, 'rightBottom')
-    x4, y4 = sidePoint_v1(Dpoint, center, h, w, 'leftBottom')
+    x1, y1 = sidePoint(Apoint, center, h, w, 'leftTop')
+    x2, y2 = sidePoint(center, Bpoint, h, w, 'rightTop')
+    x3, y3 = sidePoint(center, Cpoint, h, w, 'rightBottom')
+    x4, y4 = sidePoint(Dpoint, center, h, w, 'leftBottom')
     newcharbox = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])
     return newcharbox

@@ -298,7 +298,7 @@ class ICDAR2015(data.Dataset):
 
 
     def __getitem__(self, index):
-        return self.pull_item(index)
+        return self.pull_saved_item(index)
 
     def __len__(self):
         return len(self.images_path)
@@ -577,8 +577,43 @@ class ICDAR2015(data.Dataset):
 
         return bboxes, region_scores, confidence
 
+    def get_confidence_by_contour(self, image, region_scores, word_bbox, word, new_imagename, vis=False):
 
-    def load_image_gt_and_confidencemask(self, index):
+        word_image, _ = self.crop_image_by_bbox(image, word_bbox)
+        word_region_score, MM = self.crop_image_by_bbox(region_scores, word_bbox)
+
+        real_word_without_space = word.replace('\s', '')
+        real_char_nums = len(real_word_without_space)
+        input = word_region_score.copy()
+        # 왜 64로 scale 조절을 하는 걸까?? --> https://github.com/clovaai/CRAFT-pytorch/issues/18
+        scale = 64.0 / input.shape[0]
+        input = cv2.resize(input, None, fx=scale, fy=scale)
+
+        ret, binary = cv2.threshold(input, 0.6 * 255, 255, cv2.THRESH_BINARY)
+        binary = binary.astype(np.uint8)
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+        confidence = self.get_confidence(real_char_nums, len(contours))
+
+        if confidence <= 0.5:  # confidence 값들이 낮은 경우, confidence 0.5
+            confidence = 0.5
+
+        if vis:
+            word_image = cv2.resize(word_image, None, fx=scale, fy=scale)
+            word_region_score = cv2.resize(word_region_score, None, fx=scale, fy=scale)
+            word_region_score = cv2.applyColorMap(np.uint8(word_region_score), cv2.COLORMAP_JET)
+
+            word_region_score = word_region_score.copy()
+            binary = binary.copy()
+            word_region_score = cv2.cvtColor(word_region_score, cv2.COLOR_BGR2RGB)
+            binary = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
+            # import ipdb; ipdb.set_trace()
+            vis_result = np.hstack([word_image, word_region_score, binary])
+            cv2.imwrite(f'/nas/home/gmuffiness/workspace/ocr_related/daintlab-CRAFT-Reimplementation/craft_jm/results_dir/exp_official_craft_supervision_v1.2/contour_sample/{new_imagename}_{confidence}.jpg', vis_result)
+        return confidence
+
+
+    def load_image_gt_and_confidence_mask(self, index):
         '''
         根据索引加载ground truth
         :param index:索引
@@ -612,39 +647,87 @@ class ICDAR2015(data.Dataset):
                     continue
                 assert words[i] != '###' and len(words[i].strip()) != 0
 
-
                 pursedo_viz = False
-                if int(imagename.split('.')[0].split('_')[1]) in self.rnd_list :
+                if int(imagename.split('.')[0].split('_')[1]) in self.rnd_list:
                     pursedo_viz = True
-                    new_imagename = imagename.split('.')[0] +'_'+str(i)
+                    new_imagename = imagename.split('.')[0] + '_' + str(i)
 
                 pursedo_bboxes, bbox_region_scores, confidence = self.inference_pursedo_bboxes(self.net, image,
                                                                                                word_bboxes[i],
                                                                                                words[i],
                                                                                                viz=pursedo_viz,
                                                                                                imagename=new_imagename)
-                # confidence_mask에도 enlargebox 적용해주기 위해
-                word_bboxes[i] = enlargebox(word_bboxes[i], image.shape[0], image.shape[1])
 
                 confidences.append(confidence)
                 cv2.fillPoly(confidence_mask, [np.int32(word_bboxes[i])], (confidence))
                 new_words.append(words[i])
                 character_bboxes.append(pursedo_bboxes)
 
-        #-------------------------------------------------------------------------------------#
-
-        # if len(character_bboxes) == 0 :
-        #     utils.config.CHECK +=1
-        #     print(utils.config.CHECK)
-        #     #confidence_mask = np.zeros((image.shape[0], image.shape[1]), np.float32)
-
-
         return image, character_bboxes, new_words, confidence_mask, confidences
 
 
+    def load_image_gt_and_saved_confidence_mask(self, index):
+        '''
+        根据索引加载ground truth
+        :param index:索引
+        :return:bboxes 字符的框，
+        '''
+
+
+        imagename = self.images_path[index]
+        gt_path = os.path.join(self.gt_folder, "gt_%s.txt" % os.path.splitext(imagename)[0])
+        word_bboxes, words = self.load_gt(gt_path)
+
+        word_bboxes = np.float32(word_bboxes)
+
+        image_path = os.path.join(self.img_folder, imagename)
+        image = cv2.imread(image_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = random_scale(image, word_bboxes, self.target_size)
+        confidences = []
+
+        # load confidence_mask
+        query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
+        saved_cf_mask_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_cf_mask_thresh_0.6.jpg')
+        confidence_mask = cv2.imread(saved_cf_mask_path, cv2.IMREAD_GRAYSCALE)
+        confidence_mask = cv2.resize(confidence_mask, (image.shape[1], image.shape[0])).astype(np.float32)
+
+        #-------------------------------------------------------------------------------------#
+
+        # To make confidence_mask : 처음에만 실행될, save 할 confidence mask를 만드는 과정
+
+        # confidence_mask = np.ones((image.shape[0], image.shape[1]), np.float32)
+        #
+        # confidences = []
+        # new_imagename = ''
+        #
+        # if len(word_bboxes) > 0:
+        #     for i in range(len(word_bboxes)):
+        #
+        #         if words[i] == '###' or len(words[i].strip()) == 0:
+        #             cv2.fillPoly(confidence_mask, [np.int32(word_bboxes[i])], (0))
+        #             continue
+        #         assert words[i] != '###' and len(words[i].strip()) != 0
+        #
+        #
+        #         pursedo_viz = False
+        #         if int(imagename.split('.')[0].split('_')[1]) in self.rnd_list :
+        #             pursedo_viz = True
+        #             new_imagename = imagename.split('.')[0] +'_'+str(i)
+        #
+        #         query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
+        #         saved_region_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_region.jpg')
+        #         region_scores = cv2.imread(saved_region_scores_path, cv2.IMREAD_GRAYSCALE)
+        #         region_scores = cv2.resize(region_scores, (image.shape[1], image.shape[0])).astype(np.float32)
+        #
+        #         confidence = self.get_confidence_by_contour(image, region_scores, word_bboxes[i], words[i], new_imagename, pursedo_viz)
+        #         confidences.append(confidence)
+        #         cv2.fillPoly(confidence_mask, [np.int32(word_bboxes[i])], (confidence))
+
+        return image, word_bboxes, confidence_mask, confidences
 
     def pull_item(self, index):
-        image, character_bboxes, words, confidence_mask, confidences  = self.load_image_gt_and_confidencemask(index)
+        image, character_bboxes, words, confidence_mask, confidences  = self.load_image_gt_and_confidence_mask(index)
 
         #check minus coordinate
 
@@ -664,19 +747,111 @@ class ICDAR2015(data.Dataset):
             region_scores = self.gen.generate_region(image.shape, character_bboxes)
             affinities_scores, affinity_bboxes = self.gen.generate_affinity(image.shape, character_bboxes, words)
 
+        rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
+
+        if int(self.get_imagename(index).split('.')[0].split('_')[1]) in rnd_list and \
+                self.get_imagename(index).split('_')[0] == 'img':
+            self.viz = True
+
+        if self.viz:
+            saveImage(self.get_imagename(index), image.copy(), character_bboxes.copy(), affinity_bboxes.copy(),
+                      region_scores.copy(),affinities_scores.copy(),confidence_mask.copy())
+
+
+        random_transforms = [image, region_scores, affinities_scores, confidence_mask*255]
+        # randomcrop = eastrandomcropdata((768,768))
+        # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
+
+
+        random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
+        # random_transforms = random_crop_v2(random_transforms, (self.target_size, self.target_size))
+
+        if config.AUG == True:
+            random_transforms = random_horizontal_flip(random_transforms)
+            random_transforms = random_rotate(random_transforms)
+        image, region_image, affinity_image, confidence_mask = random_transforms
+
+        # resize label
+        region_image = self.resizeGt(region_image)
+        affinity_image = self.resizeGt(affinity_image)
+        confidence_mask = self.resizeGt(confidence_mask)
+
+        if self.viz:
+            saveInput(self.get_imagename(index), image.copy(), region_image.copy(),
+                      affinity_image.copy(), confidence_mask.copy())
+
+        image = Image.fromarray(image)
+
+        if config.AUG == True:
+            image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
+            # image = transforms.GaussianBlur(kernel_size=(3, 7), sigma=(0.1, 2))(image)
+        image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
+                                              variance=(0.229, 0.224, 0.225))
+        image = image.transpose(2, 0, 1)
+
+
+        region_image = region_image.astype(np.float32) / 255
+        affinity_image = affinity_image.astype(np.float32) / 255
+        confidence_mask = confidence_mask.astype(np.float32) /255
+
+        self.viz = False
+
+
+        return image, region_image, affinity_image, confidence_mask, confidences
+
+
+    def pull_saved_item(self, index):
+
+        query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
+        image, word_bboxes, confidence_mask, confidences  = self.load_image_gt_and_saved_confidence_mask(index)
+
+        # 기존 code 중 아래 random_crop에서 쓰이게 될 character bboxes 형식을 맞춰주기 위해, word bboxes를 1개의 character씩 담긴 bboxes로 만들어 줌
+        character_bboxes = []
+        trunc_mask = np.zeros([image.shape[0], image.shape[1]])
+        for i in range(len(word_bboxes)):
+            cv2.fillPoly(trunc_mask, [np.int32(word_bboxes[i])], 1)
+            if (word_bboxes[i] < 0).sum() > 0:
+                # trunc_mask_temp1 = trunc_mask.copy()
+                # cv2.fillPoly(trunc_mask_temp1, [np.int32(word_bboxes[i])], 1)
+                # cv2.imwrite('/nas/home/gmuffiness/result/trunc_before.png', (trunc_mask_temp1 * 255).astype(np.uint8))
+                word_bboxes[i] = np.where(word_bboxes[i] < 0, 0, word_bboxes[i])
+                # trunc_mask_temp2 = trunc_mask.copy()
+                # cv2.fillPoly(trunc_mask_temp2, [np.int32(word_bboxes[i])], 1)
+                # cv2.imwrite('/nas/home/gmuffiness/result/trunc_after.png', (trunc_mask_temp2 * 255).astype(np.uint8))
+                # import ipdb;ipdb.set_trace()
+            character_bboxes.append(np.expand_dims(word_bboxes[i], 0))
+        # save confidence mask
+
+        # confidence_mask_copy = (confidence_mask * 255).astype(np.uint8)
+        # confidence_mask_copy = cv2.applyColorMap(confidence_mask_copy, cv2.COLORMAP_JET)
+        # cv2.imwrite(os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_cf_mask_jet_thresh_0.6.jpg'), confidence_mask_copy)
+        # cv2.imwrite(os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_cf_mask_thresh_0.6.jpg'), confidence_mask)
+
+        #check minus coordinate
+
+        for cb in character_bboxes :
+            if (cb < 0).astype('float32').sum() > 0 :
+                import ipdb;ipdb.set_trace()
+                print(query_idx)
+        if len(confidences) == 0:
+            confidences = 1.0
+        else:
+            confidences = np.array(confidences).mean()
+
         # use official CRAFT model's output as teacher (to make pseudo-label)
 
-        # query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
-        # saved_region_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_region.jpg')
-        # saved_affi_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_affi.jpg')
-        # region_scores = cv2.imread(saved_region_scores_path, cv2.IMREAD_GRAYSCALE)
-        # affinities_scores = cv2.imread(saved_affi_scores_path, cv2.IMREAD_GRAYSCALE)
-        # affinity_bboxes = []
-        # region_scores = cv2.resize(region_scores, (image.shape[1], image.shape[0])).astype(np.float32)
-        # affinities_scores = cv2.resize(affinities_scores, (image.shape[1], image.shape[0])).astype(np.float32)
-        # # region_scores = cv2.cvtColor(region_scores, cv2.COLOR_BGR2GRAY)
-        # # affinities_scores = cv2.cvtColor(affinities_scores, cv2.COLOR_BGR2GRAY)
+        saved_region_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_region.jpg')
+        saved_affi_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_affi.jpg')
+        region_scores = cv2.imread(saved_region_scores_path, cv2.IMREAD_GRAYSCALE)
+        affinities_scores = cv2.imread(saved_affi_scores_path, cv2.IMREAD_GRAYSCALE)
+        affinity_bboxes = []
+        region_scores = cv2.resize(region_scores, (image.shape[1], image.shape[0])).astype(np.float32)
+        affinities_scores = cv2.resize(affinities_scores, (image.shape[1], image.shape[0])).astype(np.float32)
 
+        # truncate region, affinity out of GT box
+        trunc_mask = trunc_mask.astype(np.float32)
+        region_scores = region_scores * trunc_mask
+        affinities_scores = affinities_scores * trunc_mask
 
         rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
 
@@ -733,7 +908,6 @@ class ICDAR2015(data.Dataset):
 
 
         return image, region_image, affinity_image, confidence_mask, confidences
-
 
 
 

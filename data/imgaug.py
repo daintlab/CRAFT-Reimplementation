@@ -11,7 +11,7 @@ def random_scale(img, bboxes, min_size):
 
     h, w = img.shape[0:2]
     #random_scale = np.array([1.0, 1.5, 2.0])
-    #random_scale = np.array([0.5, 1.0, 1.5, 2.0])
+    # random_scale = [0.5, 1.0, 1.5]
     random_scale = [1.0, 1.5, 2.0]
     # scale = np.random.choice(random_scale)
     scale = random.sample(random_scale, 1)[0]
