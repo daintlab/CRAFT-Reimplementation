@@ -19,7 +19,9 @@ from utils.util import save_parser, make_logger, AverageMeter
 from eval import main
 from metrics.eval_det_iou import DetectionIoUEvaluator
 
+import wandb
 
+wandb.init(project='ocr_craft')
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
 def str2bool(v):
@@ -71,7 +73,7 @@ parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015
                     help='folder path to input images')
 
 args = parser.parse_args()
-
+wandb.config.update(args)
 
 
 def adjust_learning_rate(optimizer, gamma, step, lr):
@@ -124,6 +126,7 @@ if __name__ == "__main__":
 
     # 1-2. Real Data load
     craft = CRAFT(amp=args.amp)
+    wandb.watch(craft)
     net_param = torch.load(args.ckpt_path)
 
     try:
@@ -259,7 +262,7 @@ if __name__ == "__main__":
                 print("{}, training_step: {}|{}, learning rate: {:.8f}, training_loss: {:.5f}, avg_batch_time: {:.5f}"
                       .format(time.strftime('%Y-%m-%d:%H:%M:%S',time.localtime(time.time())), train_step,
                               whole_training_step, training_lr, mean_loss, avg_batch_time))
-
+                wandb.log({'train_step': train_step, 'mean_loss': mean_loss})
 
 
             if train_step % 500 == 0 and train_step != 0:
