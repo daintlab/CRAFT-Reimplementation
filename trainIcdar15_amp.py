@@ -13,7 +13,7 @@ from collections import OrderedDict
 from data.dataset import SynthTextDataLoader, ICDAR2015
 
 from craft import CRAFT
-from loss.mseloss import Maploss, Maploss_v2
+from loss.mseloss import Maploss, Maploss_v2, Maploss_v3
 from torch.autograd import Variable
 from utils.util import save_parser, make_logger, AverageMeter
 from eval import main
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         args.st_iter = net_param['optimizer']['state'][0]['step']
         args.lr = net_param['optimizer']['param_groups'][0]['lr']
 
-    criterion = Maploss_v2()
+    criterion = Maploss_v3()
 
 
     # mixed precision

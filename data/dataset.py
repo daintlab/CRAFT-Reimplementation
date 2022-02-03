@@ -292,10 +292,9 @@ class ICDAR2015(data.Dataset):
         self.images_path = []
         for imagename in imagenames:
             self.images_path.append(imagename)
-        self.rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
+        self.rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423, 20, 31]
+        # self.rnd_list = list(range(1000))
         self.viz = viz
-
-
 
     def __getitem__(self, index):
         return self.pull_saved_item(index)
@@ -747,9 +746,7 @@ class ICDAR2015(data.Dataset):
             region_scores = self.gen.generate_region(image.shape, character_bboxes)
             affinities_scores, affinity_bboxes = self.gen.generate_affinity(image.shape, character_bboxes, words)
 
-        rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
-
-        if int(self.get_imagename(index).split('.')[0].split('_')[1]) in rnd_list and \
+        if int(self.get_imagename(index).split('.')[0].split('_')[1]) in self.rnd_list and \
                 self.get_imagename(index).split('_')[0] == 'img':
             self.viz = True
 
@@ -803,6 +800,7 @@ class ICDAR2015(data.Dataset):
     def pull_saved_item(self, index):
 
         query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
+        # print(f'current index : {query_idx}')
         image, word_bboxes, confidence_mask, confidences  = self.load_image_gt_and_saved_confidence_mask(index)
 
         # 기존 code 중 아래 random_crop에서 쓰이게 될 character bboxes 형식을 맞춰주기 위해, word bboxes를 1개의 character씩 담긴 bboxes로 만들어 줌
@@ -853,9 +851,7 @@ class ICDAR2015(data.Dataset):
         region_scores = region_scores * trunc_mask
         affinities_scores = affinities_scores * trunc_mask
 
-        rnd_list = [189, 41, 723, 251, 232, 115, 634, 951, 247, 25, 400, 704, 619, 305, 423]
-
-        if int(self.get_imagename(index).split('.')[0].split('_')[1]) in rnd_list and \
+        if int(self.get_imagename(index).split('.')[0].split('_')[1]) in self.rnd_list and \
                 self.get_imagename(index).split('_')[0] == 'img':
             self.viz = True
 
