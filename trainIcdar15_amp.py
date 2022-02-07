@@ -13,7 +13,7 @@ from collections import OrderedDict
 from data.dataset import SynthTextDataLoader, ICDAR2015
 
 from craft import CRAFT
-from loss.mseloss import Maploss, Maploss_v2, Maploss_v3
+from loss.mseloss import Maploss, Maploss_v2, Maploss_v3, Maploss_v3_1
 from torch.autograd import Variable
 from utils.util import save_parser, make_logger, AverageMeter
 from eval import main
@@ -21,7 +21,6 @@ from metrics.eval_det_iou import DetectionIoUEvaluator
 
 import wandb
 
-wandb.init(project='ocr_craft')
 parser = argparse.ArgumentParser(description='CRAFT new-backtime92')
 
 def str2bool(v):
@@ -56,7 +55,7 @@ parser.add_argument('--num_workers', default=0, type=int,
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
 parser.add_argument('--neg_rto', default=3, type=int, help='negative pixel ratio')
-parser.add_argument('--enlargebox_mg', default=0.5, type=float, help='enlargebox_magine')
+parser.add_argument('--enlargebox_mg', default=0.55, type=float, help='enlargebox_magine')
 
 #for test
 
@@ -73,6 +72,9 @@ parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015
                     help='folder path to input images')
 
 args = parser.parse_args()
+
+wandb.init(project='ocr_craft_official_supervision')
+wandb.run.name = args.results_dir[-4:] + '_train'
 wandb.config.update(args)
 
 
@@ -159,7 +161,7 @@ if __name__ == "__main__":
         args.st_iter = net_param['optimizer']['state'][0]['step']
         args.lr = net_param['optimizer']['param_groups'][0]['lr']
 
-    criterion = Maploss_v3()
+    criterion = Maploss_v3_1()
 
 
     # mixed precision
@@ -296,6 +298,8 @@ if __name__ == "__main__":
 
 
                     val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])
+                    f1_score = np.round(metrics['hmean'], 3)
+                    wandb.log({'f1_score': f1_score})
                 except:
                     val_logger.write([train_step, losses.avg, str(0)])
 

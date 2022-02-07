@@ -18,7 +18,7 @@ from utils import config
 
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
-from data.imgaug import random_scale, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
+from data.imgaug import random_scale, random_scale_for_synth, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
 from watershed import watershed, watershed1,  watershed4, watershed_v2, watershed_v3, watershed_v4
 from data.pointClockOrder import mep
 from utils import craft_utils
@@ -168,7 +168,7 @@ class SynthTextDataLoader(data.Dataset):
         image = cv2.imread(img_path, cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         _charbox = self.charbox[index].transpose((2, 1, 0))
-        image = random_scale(image, _charbox, self.target_size)
+        image = random_scale_for_synth(image, _charbox, self.target_size)
         words = [re.split(' \n|\n |\n| ', t.strip()) for t in self.imgtxt[index]]
         words = list(itertools.chain(*words))
         words = [t for t in words if len(t) > 0]
@@ -230,10 +230,10 @@ class SynthTextDataLoader(data.Dataset):
         random_transforms = [image, region_scores, affinities_scores, confidence_mask*255]
 
         random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-        if config.AUG == True:
+        # if config.AUG == True:
 
-            random_transforms = random_horizontal_flip(random_transforms)
-            random_transforms = random_rotate(random_transforms)
+            # random_transforms = random_horizontal_flip(random_transforms)
+            # random_transforms = random_rotate(random_transforms)
 
 
 
@@ -781,7 +781,7 @@ class ICDAR2015(data.Dataset):
 
         if config.AUG == True:
             image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
-            # image = transforms.GaussianBlur(kernel_size=(3, 7), sigma=(0.1, 2))(image)
+            # image = transforms.GaussianBlur(kernel_size=(10, 10), sigma=(0.1, 5))(image)
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
         image = image.transpose(2, 0, 1)

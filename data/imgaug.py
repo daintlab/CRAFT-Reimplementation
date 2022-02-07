@@ -2,6 +2,23 @@ import cv2
 import numpy as np
 import random
 
+def random_scale_for_synth(img, bboxes, min_size):
+    h, w = img.shape[0:2]
+    if max(h, w) > 1280:
+        scale = 1280.0 / max(h, w)
+        img = cv2.resize(img, dsize=None, fx=scale, fy=scale)
+        bboxes *= scale
+
+    h, w = img.shape[0:2]
+    scale = 1
+
+    if min(h, w) * scale <= min_size:
+        scale = (min_size + 10) * 1.0 / min(h, w)
+    bboxes *= scale
+    img = cv2.resize(img, dsize=None, fx=scale, fy=scale)
+    return img
+
+
 def random_scale(img, bboxes, min_size):
     h, w = img.shape[0:2]
     if max(h, w) > 1280:
@@ -11,8 +28,8 @@ def random_scale(img, bboxes, min_size):
 
     h, w = img.shape[0:2]
     #random_scale = np.array([1.0, 1.5, 2.0])
+    # random_scale = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
     random_scale = [0.5, 1.0, 1.5]
-    # random_scale = [1.0, 1.5, 2.0]
     # scale = np.random.choice(random_scale)
     scale = random.sample(random_scale, 1)[0]
 

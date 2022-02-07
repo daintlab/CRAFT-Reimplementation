@@ -27,14 +27,6 @@ from metrics.eval_det_iou import DetectionIoUEvaluator
 
 import wandb
 
-# config_defaults = {
-#     'text_threshold': 0.85,
-#     'low_text': 0.5,
-#     'link_threshold': 0.2
-# }
-
-wandb.init(project='ocr_craft')
-# config = wandb.config
 
 def str2bool(v):
     return v.lower() in ("yes", "y", "true", "t", "1")
@@ -166,7 +158,7 @@ def main(model_path, args, evaluator, data_li=''):
         model = torch.nn.DataParallel(model)
         cudnn.benchmark = False
     model.eval()
-
+    # print('Model setting completed.')
 
     if data_li != '':
         total_imgs_bboxes_gt, total_img_path = load_synthtext_gt(args.synthData_dir, data_li=data_li)
@@ -183,6 +175,7 @@ def main(model_path, args, evaluator, data_li=''):
             total_imgs_bboxes_gt, total_img_path, gt_folder_path = load_icdar2015_gt(dataFolder=test_folder,
                                                                      isTraing=args.isTraingDataset)
 
+    # print('icdar2015 data setting completed.')
 
     total_img_bboxes_pre = []
     for k, img_path in enumerate(tqdm(total_img_path)):
@@ -223,57 +216,58 @@ def main(model_path, args, evaluator, data_li=''):
             single_img_bbox.append(box_info)
         total_img_bboxes_pre.append(single_img_bbox)
 
-        if viz == True:
-
-            result_folder_name = (args.trained_model).split('/')[-2] + '_test_output_aligned_official_hp_setting'
-
-            outpath = os.path.join(os.path.join(args.results_dir, result_folder_name), str(utils.config.ITER))
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
-
-            if test_folder.split('/')[-1].lower() == 'icdar2013':
-                saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-            else:
-                saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
-
-
-
-            height, width, channel = image.shape
-            overlay_region = cv2.resize(score_text[0], (width, height))
-            overlay_aff = cv2.resize(score_text[1], (width, height))
-
-            overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
-            overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
-
-            # save overlay
-            filename, file_ext = os.path.splitext(os.path.basename(img_path))
-            overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
-            # cv2.imwrite(overlay_region_file, overlay_region)
-
-            filename, file_ext = os.path.splitext(os.path.basename(img_path))
-            overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
-            # cv2.imwrite(overlay_aff_file, overlay_aff)
-
-            ori_image_path = outpath + "/res_" + filename + '.jpg'
-            # cv2.imwrite(ori_image_path,image)
-
-            boxed_img = image.copy()
-            for word_box in single_img_bbox:
-                # sp = np.clip(np.min(word_box['points'], axis=0), 0, max(height, width)).astype(np.uint32)
-                # ep = np.max(word_box['points'], axis=0).astype(np.uint32)
-                # cv2.rectangle(boxed_img, sp, ep, (0, 0, 255), 3)
-                # import ipdb;ipdb.set_trace()
-                cv2.polylines(boxed_img, [word_box['points'].astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=3)
-
-            box_image_path = outpath + "/res_" + filename + '_box.jpg'
-            # cv2.imwrite(box_image_path, boxed_img)
-
-            temp1 = np.hstack([image, boxed_img])
-            temp2 = np.hstack([overlay_region, overlay_aff])
-            temp3 = np.vstack([temp1, temp2])
-            #
-            cv2.imwrite(box_image_path, temp3)
+        # if viz == True:
+        #
+        #     result_folder_name = (args.trained_model).split('/')[-2] + '_test_output_aligned_official_hp_setting'
+        #
+        #     outpath = os.path.join(os.path.join(args.results_dir, result_folder_name), str(utils.config.ITER))
+        #     if not os.path.exists(outpath):
+        #         os.makedirs(outpath)
+        #
+        #     if test_folder.split('/')[-1].lower() == 'icdar2013':
+        #         saveResult_2013(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+        #     else:
+        #         saveResult_2015(img_path, image[:, :, ::-1].copy(), polys, dirname=outpath, gt_file=gt_folder_path)
+        #
+        #
+        #
+        #     height, width, channel = image.shape
+        #     overlay_region = cv2.resize(score_text[0], (width, height))
+        #     overlay_aff = cv2.resize(score_text[1], (width, height))
+        #
+        #     overlay_region = cv2.addWeighted(image.copy(), 0.4, overlay_region, 0.6, 5)
+        #     overlay_aff = cv2.addWeighted(image.copy(), 0.4, overlay_aff, 0.6, 5)
+        #
+        #     # save overlay
+        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
+        #     overlay_region_file = outpath + "/res_" + filename + '_region.jpg'
+        #     # cv2.imwrite(overlay_region_file, overlay_region)
+        #
+        #     filename, file_ext = os.path.splitext(os.path.basename(img_path))
+        #     overlay_aff_file = outpath + "/res_" + filename + '_affi.jpg'
+        #     # cv2.imwrite(overlay_aff_file, overlay_aff)
+        #
+        #     ori_image_path = outpath + "/res_" + filename + '.jpg'
+        #     # cv2.imwrite(ori_image_path,image)
+        #
+        #     boxed_img = image.copy()
+        #     for word_box in single_img_bbox:
+        #         # sp = np.clip(np.min(word_box['points'], axis=0), 0, max(height, width)).astype(np.uint32)
+        #         # ep = np.max(word_box['points'], axis=0).astype(np.uint32)
+        #         # cv2.rectangle(boxed_img, sp, ep, (0, 0, 255), 3)
+        #         # import ipdb;ipdb.set_trace()
+        #         cv2.polylines(boxed_img, [word_box['points'].astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=3)
+        #
+        #     box_image_path = outpath + "/res_" + filename + '_box.jpg'
+        #     # cv2.imwrite(box_image_path, boxed_img)
+        #
+        #     temp1 = np.hstack([image, boxed_img])
+        #     temp2 = np.hstack([overlay_region, overlay_aff])
+        #     temp3 = np.vstack([temp1, temp2])
+        #     #
+        #     cv2.imwrite(box_image_path, temp3)
         # # # --------------------------------------------------------------------------------------------------------#
+    # print('Predict bbox points completed.')
 
     results = []
     for gt, pred in zip(total_imgs_bboxes_gt, total_img_bboxes_pre):
@@ -307,6 +301,8 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
+    wandb.init(project='ocr_craft_official_supervision')
+    wandb.run.name = args.trained_model.split('/')[-2][-4:] + '_eval'
     wandb.config.update(args)
 
     evaluator = DetectionIoUEvaluator()
