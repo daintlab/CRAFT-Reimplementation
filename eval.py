@@ -193,12 +193,10 @@ def main(model_path, args, evaluator, data_li=''):
                                              args.canvas_size,
                                              args.mag_ratio)
 
-        # # # # -------------------------------------------------------------------------------------------------------#
 
         if test_folder.split('/')[-1].lower() == 'icdar2013':
             rnd_list = [136, 210,  64,  97, 209,  87,  91, 169, 173, 191,  89, 177,  62,
                         105, 124, 213,  207, 216, 217,  34, 187,  42, 102, 113, 111, 176, 182, 1, 5, 8 ]
-
         else:
             rnd_list = [1, 264, 135, 352, 481, 250, 355, 436, 45, 181, 98, 173, 267, 200, 79, 395,
                         399, 162, 184, 217, 327, 344, 11, 107, 299, 244, 271, 92, 149, 259]
@@ -206,7 +204,7 @@ def main(model_path, args, evaluator, data_li=''):
 
         viz = True
         if k in rnd_list:
-           viz = True
+            viz = True
 
         for box in bboxes:
             box_info = {"points": None, "text": None, "ignore": None}
@@ -215,6 +213,8 @@ def main(model_path, args, evaluator, data_li=''):
             box_info["ignore"] = False
             single_img_bbox.append(box_info)
         total_img_bboxes_pre.append(single_img_bbox)
+
+        # # # # -------------------------------------------------------------------------------------------------------#
 
         # if viz == True:
         #
@@ -264,7 +264,7 @@ def main(model_path, args, evaluator, data_li=''):
         #     temp1 = np.hstack([image, boxed_img])
         #     temp2 = np.hstack([overlay_region, overlay_aff])
         #     temp3 = np.vstack([temp1, temp2])
-        #     #
+        #
         #     cv2.imwrite(box_image_path, temp3)
         # # # --------------------------------------------------------------------------------------------------------#
     # print('Predict bbox points completed.')

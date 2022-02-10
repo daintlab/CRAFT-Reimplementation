@@ -55,7 +55,7 @@ parser.add_argument('--num_workers', default=0, type=int,
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
 parser.add_argument('--neg_rto', default=3, type=int, help='negative pixel ratio')
-parser.add_argument('--enlargebox_mg', default=0.55, type=float, help='enlargebox_magine')
+parser.add_argument('--enlargebox_mg', default=0.5, type=float, help='enlargebox_magine')
 
 #for test
 
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         args.st_iter = net_param['optimizer']['state'][0]['step']
         args.lr = net_param['optimizer']['param_groups'][0]['lr']
 
-    criterion = Maploss_v3_1()
+    criterion = Maploss_v2()
 
 
     # mixed precision

@@ -58,7 +58,7 @@ class Maploss_v2(nn.Module):
 
         super(Maploss_v2, self).__init__()
 
-    def single_image_loss(self, pred_score, label_score, neg_rto):
+    def single_image_loss(self, pred_score, label_score, neg_rto, flag):
 
         batch_size = pred_score.shape[0]
 
@@ -76,15 +76,22 @@ class Maploss_v2(nn.Module):
         if positive_pixel_number != 0:
             if negative_pixel_number < neg_rto * positive_pixel_number:
                 negative_loss = torch.sum(negative_loss_region) / negative_pixel_number
+                cond_flag = 0
             else:
                 negative_loss = \
                     torch.sum(torch.topk(negative_loss_region.view(-1), int(neg_rto * positive_pixel_number))[0]) \
                     / (positive_pixel_number * neg_rto)
-
+                cond_flag = 1
         else:
             # only negative pixel
             negative_loss = torch.sum(torch.topk(negative_loss_region, 500)[0]) / 500
-        # import ipdb;ipdb.set_trace()
+            cond_flag = 2
+
+        # if flag == 'region':
+        #     wandb.log({"region_positive_loss": positive_loss, "region_negative_loss": negative_loss, "region_pos_pixel_num" : positive_pixel_number, "region_neg_pixel_num" : negative_pixel_number, "region_condition":cond_flag})
+        # else:
+        #     wandb.log({"affi_positive_loss": positive_loss, "affi_negative_loss": negative_loss, "affi_pos_pixel_num" : positive_pixel_number, "affi_neg_pixel_num" : negative_pixel_number, "affi_condition":cond_flag})
+
         total_loss = positive_loss + negative_loss
 
         return total_loss
@@ -103,9 +110,8 @@ class Maploss_v2(nn.Module):
         loss_region = torch.mul(loss1, mask)
         loss_affinity = torch.mul(loss2, mask)
 
-        char_loss = self.single_image_loss(loss_region, region_scores_label, neg_rto)
-        affi_loss = self.single_image_loss(loss_affinity, affinity_socres_label, neg_rto)
-        import ipdb;ipdb.set_trace()
+        char_loss = self.single_image_loss(loss_region, region_scores_label, neg_rto, flag='region')
+        affi_loss = self.single_image_loss(loss_affinity, affinity_socres_label, neg_rto, flag='affinity')
         return char_loss + affi_loss
 
 
@@ -142,8 +148,6 @@ class Maploss_v3(nn.Module):
             negative_loss = \
                 torch.sum(torch.topk(negative_loss_region.view(-1), int(neg_rto * positive_pixel_number))[0]) \
                 / (neg_rto * positive_pixel_number)
-        if torch.isnan(positive_loss) or torch.isnan(negative_loss):
-            import ipdb; ipdb.set_trace()
         total_loss = positive_loss + negative_loss
 
         return total_loss, positive_pixel_number
