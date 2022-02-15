@@ -75,11 +75,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CRAFT Text Detection')
     parser.add_argument('--base_path', default='/nas/home/gmuffiness/result/ocr/icdar2015', type=str,
                         help='Path to save checkpoints')
-    # parser.add_argument('--v1_dir_name', default='official_test_output_aligned_official_hp_setting', type=str,
-    #                     help='Path to save checkpoints')
-    parser.add_argument('--v1_dir_name', default='exp_official_craft_supervision_v3.3_test_output_aligned_official_hp_setting', type=str,
-                                            help='Path to save checkpoints')
-    parser.add_argument('--v2_dir_name', default='exp_official_craft_supervision_v1.4_test_output_aligned_official_hp_setting', type=str,
+    parser.add_argument('--v1_dir_name', default='official_test_output_aligned_official_hp_setting', type=str,
+                        help='Path to save checkpoints')
+    # parser.add_argument('--v1_dir_name', default='exp_official_craft_supervision_v3.2_test_output_aligned_official_hp_setting', type=str,
+    #                                         help='Path to save checkpoints')
+    parser.add_argument('--v2_dir_name', default='exp_official_craft_supervision_v2.3_test_output_aligned_official_hp_setting', type=str,
                         help='Path to save checkpoints')
     parser.add_argument('--img_index', default='20', type=str,
                         help='Path to save checkpoints')

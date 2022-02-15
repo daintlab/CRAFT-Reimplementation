@@ -11,9 +11,10 @@ import utils.config
 
 from collections import OrderedDict
 from data.dataset import SynthTextDataLoader, ICDAR2015
+from data.imgproc import denormalizeMeanVariance
 
 from craft import CRAFT
-from loss.mseloss import Maploss, Maploss_v2, Maploss_v3, Maploss_v3_1
+from loss.mseloss import Maploss, Maploss_v2, Maploss_v2_3, Maploss_v3, Maploss_v3_1
 from torch.autograd import Variable
 from utils.util import save_parser, make_logger, AverageMeter
 from eval import main
@@ -48,13 +49,16 @@ parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
 parser.add_argument('--lr_decay', default=10000, type=int, help='learning rate decay')
 parser.add_argument('--gamma', '--gamma', default=0.8, type=float,
                     help='initial gamma')
-parser.add_argument('--weight_decay', default=1e-4, type=float,
+parser.add_argument('--beta1', default=0.99, type=float, help='beta1(applied to momentum of Adam)')
+parser.add_argument('--beta2', default=0.999, type=float, help='beta2(applied to velocity of Adam)')
+parser.add_argument('--weight_decay', default=1e-5, type=float,
                     help='Weight decay')
 parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
-parser.add_argument('--neg_rto', default=3, type=int, help='negative pixel ratio')
+parser.add_argument('--loss_vis', default=False, type=str2bool, help='Option to visualize Loss calculate process')
+parser.add_argument('--neg_rto', default=1, type=int, help='negative pixel ratio')
 parser.add_argument('--enlargebox_mg', default=0.5, type=float, help='enlargebox_magine')
 
 #for test
@@ -73,7 +77,7 @@ parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015
 
 args = parser.parse_args()
 
-wandb.init(project='ocr_craft_official_supervision')
+wandb.init(project='ocr_craft')
 wandb.run.name = args.results_dir[-4:] + '_train'
 wandb.config.update(args)
 
@@ -154,14 +158,14 @@ if __name__ == "__main__":
 
 
     # 2. optim & loss
-    optimizer = optim.Adam(craft.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = optim.Adam(craft.parameters(), lr=args.lr,  betas=(args.beta1, args.beta2), weight_decay=args.weight_decay)
     if args.st_iter != 0:
         print('success optim_load')
         optimizer.load_state_dict(copyStateDict(net_param['optimizer']))
         args.st_iter = net_param['optimizer']['state'][0]['step']
         args.lr = net_param['optimizer']['param_groups'][0]['lr']
 
-    criterion = Maploss_v2()
+    criterion = Maploss_v2_3()
 
 
     # mixed precision
@@ -205,7 +209,12 @@ if __name__ == "__main__":
             syn_images, syn_region_label, syn_affi_label, syn_confidence_mask, _ = next(batch_syn)
             images = torch.cat((syn_images, real_images), 0)
 
-
+            # ====================================== Save train image batches ======================================
+            if args.loss_vis:
+                imgs_vis = denormalizeMeanVariance(torch.einsum('nchw->nhwc', images).numpy()).reshape(-1,768,3)
+                imgs_vis = cv2.cvtColor(imgs_vis, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(f'/nas/home/gmuffiness/result/vis_result_imgs_{batch_index}.png',imgs_vis)
+            # ===============================================================================================
             # cat syn & real image
             region_image_label = torch.cat((syn_region_label, real_region_label), 0)
             affinity_image_label = torch.cat((syn_affi_label, real_affi_label), 0)
@@ -225,7 +234,7 @@ if __name__ == "__main__":
                     out1 = output[:, :, :, 0]
                     out2 = output[:, :, :, 1]
                     # loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
-                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label, args.neg_rto)
+                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label, args.neg_rto, vis=args.loss_vis)
             else:
                 output, _ = craft(images)
                 out1 = output[:, :, :, 0]
@@ -298,8 +307,6 @@ if __name__ == "__main__":
 
 
                     val_logger.write([train_step, losses.avg, str(np.round(metrics['hmean'], 3))])
-                    f1_score = np.round(metrics['hmean'], 3)
-                    wandb.log({'f1_score': f1_score})
                 except:
                     val_logger.write([train_step, losses.avg, str(0)])
 

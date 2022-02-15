@@ -214,7 +214,7 @@ def main(model_path, args, evaluator, data_li=''):
             single_img_bbox.append(box_info)
         total_img_bboxes_pre.append(single_img_bbox)
 
-        # # # # -------------------------------------------------------------------------------------------------------#
+        # ------------------------------------------------------------------------------------------------------- #
 
         # if viz == True:
         #
@@ -232,6 +232,15 @@ def main(model_path, args, evaluator, data_li=''):
         #
         #
         #     height, width, channel = image.shape
+        #
+        #     # ========== To save training image's region score with Official pretrained model ==========================
+        #
+        #     # if score_text[0].shape != (544, 960):
+        #     #     import ipdb; ipdb.set_trace()
+        #     # score_text[0] = score_text[0][:-4,:]
+        #     # score_text[1] = score_text[1][:-4,:]
+        #
+        #     # ==========================================================================================================
         #     overlay_region = cv2.resize(score_text[0], (width, height))
         #     overlay_aff = cv2.resize(score_text[1], (width, height))
         #
@@ -259,7 +268,7 @@ def main(model_path, args, evaluator, data_li=''):
         #         cv2.polylines(boxed_img, [word_box['points'].astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0), thickness=3)
         #
         #     box_image_path = outpath + "/res_" + filename + '_box.jpg'
-        #     # cv2.imwrite(box_image_path, boxed_img)
+        #     cv2.imwrite(box_image_path, boxed_img)
         #
         #     temp1 = np.hstack([image, boxed_img])
         #     temp2 = np.hstack([overlay_region, overlay_aff])
@@ -301,7 +310,7 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    wandb.init(project='ocr_craft_official_supervision')
+    wandb.init(project='ocr_craft')
     wandb.run.name = args.trained_model.split('/')[-2][-4:] + '_eval'
     wandb.config.update(args)
 

@@ -685,7 +685,8 @@ class ICDAR2015(data.Dataset):
         image = random_scale(image, word_bboxes, self.target_size)
         confidences = []
 
-        # load confidence_mask
+        # Load confidence_mask
+
         query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
         saved_cf_mask_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_cf_mask_thresh_0.6.jpg')
         confidence_mask = cv2.imread(saved_cf_mask_path, cv2.IMREAD_GRAYSCALE)
@@ -716,6 +717,7 @@ class ICDAR2015(data.Dataset):
         #
         #         query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
         #         saved_region_scores_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_region.jpg')
+        #         # import ipdb; ipdb.set_trace()
         #         region_scores = cv2.imread(saved_region_scores_path, cv2.IMREAD_GRAYSCALE)
         #         region_scores = cv2.resize(region_scores, (image.shape[1], image.shape[0])).astype(np.float32)
         #
@@ -818,6 +820,7 @@ class ICDAR2015(data.Dataset):
                 # cv2.imwrite('/nas/home/gmuffiness/result/trunc_after.png', (trunc_mask_temp2 * 255).astype(np.uint8))
                 # import ipdb;ipdb.set_trace()
             character_bboxes.append(np.expand_dims(word_bboxes[i], 0))
+
         # save confidence mask
 
         # confidence_mask_copy = (confidence_mask * 255).astype(np.uint8)
