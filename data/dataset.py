@@ -297,7 +297,9 @@ class ICDAR2015(data.Dataset):
         self.viz = viz
 
     def __getitem__(self, index):
+        # return self.pull_item(index)
         return self.pull_saved_item(index)
+
 
     def __len__(self):
         return len(self.images_path)

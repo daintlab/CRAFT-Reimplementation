@@ -57,7 +57,7 @@ parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--aug', default=False, type=str2bool, help='augmentation')
 parser.add_argument('--amp', default=False, type=str2bool, help='Automatic Mixed Precision')
-parser.add_argument('--loss_vis', default=False, type=str2bool, help='Option to visualize Loss calculate process')
+parser.add_argument('--loss_vis', default=True, type=str2bool, help='Option to visualize Loss calculate process')
 parser.add_argument('--neg_rto', default=1, type=int, help='negative pixel ratio')
 parser.add_argument('--enlargebox_mg', default=0.5, type=float, help='enlargebox_magine')
 
@@ -77,7 +77,7 @@ parser.add_argument('--test_folder', default='/home/data/ocr/detection/ICDAR2015
 
 args = parser.parse_args()
 
-wandb.init(project='ocr_craft')
+wandb.init(project='ocr_craft_official_supervision')
 wandb.run.name = args.results_dir[-4:] + '_train'
 wandb.config.update(args)
 
@@ -214,6 +214,10 @@ if __name__ == "__main__":
                 imgs_vis = denormalizeMeanVariance(torch.einsum('nchw->nhwc', images).numpy()).reshape(-1,768,3)
                 imgs_vis = cv2.cvtColor(imgs_vis, cv2.COLOR_RGB2BGR)
                 cv2.imwrite(f'/nas/home/gmuffiness/result/vis_result_imgs_{batch_index}.png',imgs_vis)
+
+                vis_result = cv2.cvtColor(imgs_vis, cv2.COLOR_BGR2RGB)
+                image_log = wandb.Image(vis_result, caption=f"img_{batch_index}")
+                wandb.log({f'img_{batch_index}': image_log})
             # ===============================================================================================
             # cat syn & real image
             region_image_label = torch.cat((syn_region_label, real_region_label), 0)
@@ -234,7 +238,7 @@ if __name__ == "__main__":
                     out1 = output[:, :, :, 0]
                     out2 = output[:, :, :, 1]
                     # loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label)
-                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label, args.neg_rto, vis=args.loss_vis)
+                    loss = criterion(region_image_label, affinity_image_label, out1, out2, confidence_mask_label, args.neg_rto, vis=args.loss_vis, batch_index=batch_index)
             else:
                 output, _ = craft(images)
                 out1 = output[:, :, :, 0]

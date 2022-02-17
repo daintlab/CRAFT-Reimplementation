@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -121,7 +123,7 @@ class Maploss_v2_3(nn.Module):
 
         super(Maploss_v2_3, self).__init__()
 
-    def batch_image_loss(self, pred_score, label_score, neg_rto, flag, vis=False):
+    def batch_image_loss(self, pred_score, label_score, neg_rto, flag, vis=False, batch_index=0):
 
         batch_size = pred_score.shape[0]
 
@@ -165,10 +167,14 @@ class Maploss_v2_3(nn.Module):
             negative_loss_region_vis = cv2.applyColorMap((negative_loss_region.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
             vis_result = np.hstack([positive_pixel_vis, negative_pixel_vis, positive_loss_region_vis, negative_loss_region_vis])
             cv2.imwrite(f'/nas/home/gmuffiness/result/vis_result_inside_{flag}_pos-{positive_loss}_neg-{negative_loss}.png', vis_result)
+            vis_result = cv2.cvtColor(vis_result, cv2.COLOR_BGR2RGB)
+            image_log = wandb.Image(vis_result, caption=f"positive loss :{positive_loss}, negative loss:{negative_loss}")
+            wandb.log({f'loss_vis_inside_example_{flag}_{batch_index}': image_log})
         return total_loss
 
     def forward(self, region_scores_label, affinity_scores_label, region_scores_pre, affinity_scores_pre, mask,
-                neg_rto, vis=False):
+                neg_rto, vis=False, batch_index=0):
+
         loss_fn = torch.nn.MSELoss(reduce=False, size_average=False)
 
         assert region_scores_label.size() == region_scores_pre.size() and affinity_scores_label.size() == affinity_scores_pre.size()
@@ -181,8 +187,9 @@ class Maploss_v2_3(nn.Module):
         loss_region = torch.mul(loss1, mask)
         loss_affinity = torch.mul(loss2, mask)
 
-        char_loss = self.batch_image_loss(loss_region, region_scores_label, neg_rto, flag='region', vis=vis)
-        affi_loss = self.batch_image_loss(loss_affinity, affinity_scores_label, neg_rto, flag='affinity', vis=vis)
+        char_loss = self.batch_image_loss(loss_region[4:,:,:], region_scores_label[4:,:,:], neg_rto, flag='region', vis=vis, batch_index=batch_index)
+        # char_loss_synth = self.batch_image_loss(loss_region[:4,:,:], region_scores_label[:4,:,:], neg_rto, flag='region', vis=vis)
+        affi_loss = self.batch_image_loss(loss_affinity[4:,:,:], affinity_scores_label[4:,:,:], neg_rto, flag='affinity', vis=vis, batch_index=batch_index)
 
         if vis == True:
             region_scores_pre_vis = cv2.applyColorMap((region_scores_pre.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
@@ -190,15 +197,20 @@ class Maploss_v2_3(nn.Module):
             affinity_scores_pre_vis = cv2.applyColorMap((affinity_scores_pre.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
             affinity_scores_label_vis = cv2.applyColorMap((affinity_scores_label.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
 
-            loss1 = cv2.applyColorMap((loss1.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
-            loss2 = cv2.applyColorMap((loss2.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
+            loss1_gray_vis = (loss1.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8)
+            cv2.imwrite(f'/nas/home/gmuffiness/result/vis_result_loss1_gray.png', loss1_gray_vis)
+            loss1_vis = cv2.applyColorMap((loss1.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
+            loss2_vis = cv2.applyColorMap((loss2.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
             mask_vis = cv2.applyColorMap((mask.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
 
-            loss_region = cv2.applyColorMap((loss_region.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
-            loss_affinity = cv2.applyColorMap((loss_affinity.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
+            loss_region_vis = cv2.applyColorMap((loss_region.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
+            loss_affinity_vis = cv2.applyColorMap((loss_affinity.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
 
-            vis_result = np.hstack([region_scores_pre_vis, region_scores_label_vis, affinity_scores_pre_vis, affinity_scores_label_vis, loss1, loss2, mask_vis, loss_region, loss_affinity])
+            vis_result = np.hstack([region_scores_pre_vis, region_scores_label_vis, affinity_scores_pre_vis, affinity_scores_label_vis, loss1_vis, loss2_vis, mask_vis, loss_region_vis, loss_affinity_vis])
             cv2.imwrite(f'/nas/home/gmuffiness/result/vis_result_char-{char_loss}_affi-{affi_loss}.png', vis_result)
+            vis_result = cv2.cvtColor(vis_result, cv2.COLOR_BGR2RGB)
+            image_log = wandb.Image(vis_result, caption=f"char loss :{char_loss}, affi_loss:{affi_loss}")
+            wandb.log({f'loss_vis_example_{batch_index}':image_log})
             import ipdb; ipdb.set_trace()
         return char_loss + affi_loss
 

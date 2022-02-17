@@ -47,6 +47,10 @@ def resize_aspect_ratio(img, square_size, interpolation, mag_ratio=1):
     ratio = target_size / max(height, width)    
 
     target_h, target_w = int(height * ratio), int(width * ratio)
+
+    # NOTE
+    valid_size_heatmap = (int(target_h / 2), int(target_w / 2))
+
     proc = cv2.resize(img, (target_w, target_h), interpolation = interpolation)
 
 
@@ -60,9 +64,9 @@ def resize_aspect_ratio(img, square_size, interpolation, mag_ratio=1):
     resized[0:target_h, 0:target_w, :] = proc
     target_h, target_w = target_h32, target_w32
 
-    size_heatmap = (int(target_w/2), int(target_h/2))
+    # size_heatmap = (int(target_w/2), int(target_h/2))
 
-    return resized, ratio, size_heatmap
+    return resized, ratio, valid_size_heatmap
 
 def cvt2HeatmapImg(img):
     img = (np.clip(img, 0, 1) * 255).astype(np.uint8)

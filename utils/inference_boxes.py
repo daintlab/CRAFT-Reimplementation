@@ -32,6 +32,11 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, c
     score_text = y[0,:,:,0].cpu().data.numpy()
     score_link = y[0,:,:,1].cpu().data.numpy()
 
+    # NOTE
+    score_text = score_text[:size_heatmap[0], :size_heatmap[1]]
+    score_link = score_link[:size_heatmap[0], :size_heatmap[1]]
+
+
     # Post-processing
     boxes, polys = craft_utils.getDetBoxes(score_text, score_link, text_threshold, link_threshold, low_text, poly)
 
