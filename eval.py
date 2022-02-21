@@ -143,7 +143,7 @@ def main(model_path, args, evaluator, data_li=''):
     # load net
 
     model = CRAFT()  # initialize
-    wandb.watch(model)
+    # wandb.watch(model)
     # net = UNetWithResnet50Encoder()
     print('Loading weights from checkpoint (' + model_path + ')')
     net_param = torch.load(model_path)
