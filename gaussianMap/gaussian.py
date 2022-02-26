@@ -117,9 +117,9 @@ class GaussianTransformer(object):
         # import ipdb;ipdb.set_trace()
         bbox = enlargebox(bbox, image.shape[0], image.shape[1])
 
-        if signal == "affinity":
-            bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = \
-                bbox_copy[0][0], bbox_copy[1][0], bbox_copy[2][0], bbox_copy[3][0]
+        # if signal == "affinity":
+        #     bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0] = \
+        #         bbox_copy[0][0], bbox_copy[1][0], bbox_copy[2][0], bbox_copy[3][0]
 
         if np.any(bbox < 0) or np.any(bbox[:, 0] > image.shape[1]) or np.any(bbox[:, 1] > image.shape[0]):
             return image
