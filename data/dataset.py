@@ -18,7 +18,7 @@ from utils import config
 
 from gaussianMap.gaussian import GaussianTransformer
 from data.boxEnlarge import enlargebox
-from data.imgaug import random_scale, random_scale_for_synth, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate
+from data.imgaug import random_scale, random_scale_for_synth, random_crop_v0, random_crop, random_crop_v2, random_horizontal_flip, random_rotate, random_resize_crop
 from watershed import watershed, watershed1,  watershed4, watershed_v2, watershed_v3, watershed_v4
 from data.pointClockOrder import mep
 from utils import craft_utils
@@ -227,34 +227,37 @@ class SynthTextDataLoader(data.Dataset):
                            confidence_mask)
 
 
-        random_transforms = [image, region_scores, affinities_scores, confidence_mask*255]
+        augment_targets = [image, region_scores, affinities_scores, confidence_mask*255]
+        # randomcrop = eastrandomcropdata((768,768))
+        # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
+        augment_targets = random_rotate(augment_targets)
 
-        random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-        # if config.AUG == True:
+        augment_targets = random_resize_crop(
+            augment_targets, (0.333, 1.0), (0.75, 1.333), self.target_size
+        )
+        # augment_targets = random_crop(augment_targets, (self.target_size, self.target_size), character_bboxes)
+        # augment_targets = random_crop_v2(augment_targets, (self.target_size, self.target_size))
 
-            # random_transforms = random_horizontal_flip(random_transforms)
-            # random_transforms = random_rotate(random_transforms)
+        image, region_image, affinity_image, confidence_mask = augment_targets
 
-
-
-        image, region_image, affinity_image, confidence_mask = random_transforms
-
-        #resize label
+        # resize label
         region_image = self.resizeGt(region_image)
         affinity_image = self.resizeGt(affinity_image)
         confidence_mask = self.resizeGt(confidence_mask)
 
-        if self.viz:
-            saveInput(self.image[index][0], image, region_image, affinity_image, confidence_mask)
-            self.viz = False
 
+        if self.viz:
+            saveInput(self.get_imagename(index), image.copy(), region_image.copy(),
+                      affinity_image.copy(), confidence_mask.copy())
 
         image = Image.fromarray(image)
 
+        image = transforms.ColorJitter(brightness=0.2,
+                                       contrast=0.2,
+                                       saturation=0.2,
+                                       hue=0.2)(image)
 
-        if config.AUG == True:
-            image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
-            #image = transforms.ColorJitter(brightness=32.0 / 255, contrast=0.5, saturation=0.5, hue=0.25)(image)
+
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
         image = image.transpose(2, 0, 1)
@@ -278,10 +281,11 @@ class SynthTextDataLoader(data.Dataset):
 
 
 class ICDAR2015(data.Dataset):
-    def __init__(self, net, icdar2015_folder, target_size=768, viz=False, sigma=40):
+    def __init__(self, icdar2015_folder, target_size=768, viz=False, sigma=40):
 
-        self.net = net
-        self.net.eval()
+        # self.net = net
+        # self.net.eval()
+        self.net = 0
 
         self.target_size = target_size
         self.gen = GaussianTransformer(200, 1.5, sigma=sigma)
@@ -865,26 +869,23 @@ class ICDAR2015(data.Dataset):
                       region_scores.copy(),affinities_scores.copy(),confidence_mask.copy())
 
 
-        random_transforms = [image, region_scores, affinities_scores, confidence_mask*255]
+        augment_targets = [image, region_scores, affinities_scores, confidence_mask*255]
         # randomcrop = eastrandomcropdata((768,768))
         # region_image, affinity_image, character_bboxes = randomcrop(region_image, affinity_image, character_bboxes)
+        augment_targets = random_rotate(augment_targets)
 
+        augment_targets = random_resize_crop(
+            augment_targets, (0.333, 1.0), (0.75, 1.333), self.target_size
+        )
+        # augment_targets = random_crop(augment_targets, (self.target_size, self.target_size), character_bboxes)
+        # augment_targets = random_crop_v2(augment_targets, (self.target_size, self.target_size))
 
-        random_transforms = random_crop(random_transforms, (self.target_size, self.target_size), character_bboxes)
-        # random_transforms = random_crop_v2(random_transforms, (self.target_size, self.target_size))
-
-        if config.AUG == True:
-            random_transforms = random_horizontal_flip(random_transforms)
-            random_transforms = random_rotate(random_transforms)
-        image, region_image, affinity_image, confidence_mask = random_transforms
+        image, region_image, affinity_image, confidence_mask = augment_targets
 
         # resize label
         region_image = self.resizeGt(region_image)
         affinity_image = self.resizeGt(affinity_image)
         confidence_mask = self.resizeGt(confidence_mask)
-
-
-
 
 
         if self.viz:
@@ -893,8 +894,11 @@ class ICDAR2015(data.Dataset):
 
         image = Image.fromarray(image)
 
-        if config.AUG == True:
-            image = transforms.ColorJitter(brightness=32.0 / 255, saturation=0.5)(image)
+
+        image = transforms.ColorJitter(brightness=0.2,
+                                       contrast=0.2,
+                                       saturation=0.2,
+                                       hue=0.2)(image)
 
         image = imgproc.normalizeMeanVariance(np.array(image), mean=(0.485, 0.456, 0.406),
                                               variance=(0.229, 0.224, 0.225))
