@@ -187,9 +187,9 @@ class Maploss_v2_3(nn.Module):
         loss_region = torch.mul(loss1, mask)
         loss_affinity = torch.mul(loss2, mask)
 
-        char_loss = self.batch_image_loss(loss_region[4:,:,:], region_scores_label[4:,:,:], neg_rto, flag='region', vis=vis, batch_index=batch_index)
+        char_loss = self.batch_image_loss(loss_region[:,:,:], region_scores_label[:,:,:], neg_rto, flag='region', vis=vis, batch_index=batch_index)
         # char_loss_synth = self.batch_image_loss(loss_region[:4,:,:], region_scores_label[:4,:,:], neg_rto, flag='region', vis=vis)
-        affi_loss = self.batch_image_loss(loss_affinity[4:,:,:], affinity_scores_label[4:,:,:], neg_rto, flag='affinity', vis=vis, batch_index=batch_index)
+        affi_loss = self.batch_image_loss(loss_affinity[:,:,:], affinity_scores_label[:,:,:], neg_rto, flag='affinity', vis=vis, batch_index=batch_index)
 
         if vis == True:
             region_scores_pre_vis = cv2.applyColorMap((region_scores_pre.reshape(-1, 384).detach().cpu().numpy() * 255).astype(np.uint8), cv2.COLORMAP_JET)
@@ -276,7 +276,58 @@ class Maploss_v3(nn.Module):
         return (char_losses + affi_losses) / batch_size
 
 
+class Maploss_shwang(nn.Module):
+    def __init__(self, use_gpu=True):
 
+        super(Maploss_shwang, self).__init__()
+
+    def single_image_loss(self, pre_loss, loss_label, neg_rto, n_min_neg):
+
+        batch_size = pre_loss.shape[0]
+
+        positive_loss, negative_loss = 0, 0
+        for single_loss, single_label in zip(pre_loss, loss_label):
+
+            # positive_loss
+            pos_pixel = (single_label >= 0.1).float()
+            n_pos_pixel = torch.sum(pos_pixel)
+            pos_loss_region = single_loss * pos_pixel
+            positive_loss += torch.sum(pos_loss_region) / max(n_pos_pixel, 1e-12)
+
+            # negative_loss
+            neg_pixel = (single_label < 0.1).float()
+            n_neg_pixel = torch.sum(neg_pixel)
+            neg_loss_region = single_loss * neg_pixel
+
+            if n_pos_pixel != 0:
+                if n_neg_pixel < neg_rto * n_pos_pixel:
+                    negative_loss += torch.sum(neg_loss_region) / n_neg_pixel
+                else:
+                    n_hard_neg = max(n_min_neg, neg_rto*n_pos_pixel)
+                    #n_hard_neg = neg_rto*n_pos_pixel
+                    negative_loss += torch.sum(torch.topk(neg_loss_region.view(-1), int(n_hard_neg))[0]) / n_hard_neg
+            else:
+                #only negative pixel
+                negative_loss += torch.sum(torch.topk(neg_loss_region.view(-1), n_min_neg)[0]) / n_min_neg
+
+        total_loss = (positive_loss + negative_loss) / batch_size
+
+        return total_loss
+
+    def forward(self, region_scores_label, affinity_scores_label, region_scores_pre, affinity_scores_pre, mask, neg_rto, n_min_neg):
+        loss_fn = torch.nn.MSELoss(reduce=False, size_average=False)
+
+        assert region_scores_label.size() == region_scores_pre.size() and affinity_scores_label.size() == affinity_scores_pre.size()
+        loss1 = loss_fn(region_scores_pre, region_scores_label)
+        loss2 = loss_fn(affinity_scores_pre, affinity_scores_label)
+
+        loss_region = torch.mul(loss1, mask)
+        loss_affinity = torch.mul(loss2, mask)
+
+        char_loss = self.single_image_loss(loss_region, region_scores_label, neg_rto, n_min_neg)
+        affi_loss = self.single_image_loss(loss_affinity, affinity_scores_label, neg_rto, n_min_neg)
+
+        return char_loss + affi_loss
 
 class Maploss_v3_1(nn.Module):
     def __init__(self, use_gpu=True):
