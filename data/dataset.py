@@ -696,7 +696,8 @@ class ICDAR2015(data.Dataset):
         query_idx = int(self.get_imagename(index).split('.')[0].split('_')[1])
         saved_cf_mask_path = os.path.join(config.OFFICIAL_SUPERVISION_DIR, f'res_img_{query_idx}_cf_mask_thresh_0.6.jpg')
         confidence_mask = cv2.imread(saved_cf_mask_path, cv2.IMREAD_GRAYSCALE)
-        confidence_mask = cv2.resize(confidence_mask, (image.shape[1], image.shape[0])).astype(np.float32)
+        confidence_mask = (confidence_mask.astype(np.float32) / 255)
+        confidence_mask = cv2.resize(confidence_mask, (image.shape[1], image.shape[0]))
 
         #-------------------------------------------------------------------------------------#
 
